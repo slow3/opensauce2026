@@ -233,6 +233,27 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--text-muted); }
 .dbtn.teal.active { background: var(--teal); color: #fff; }
 #debug-state { color: var(--text-dim); font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .screen.active { padding-bottom: 120px; } /* room for debug bar */
+
+/* ── awaiting_crop status ───────────────────────────────────────────────── */
+.job-status-pill.awaiting_crop { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+.step-pip.awaiting_crop { background: var(--amber); }
+
+/* ── Crop modal ─────────────────────────────────────────────────────────── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 8000; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--surface); border-radius: var(--radius-lg); padding: 28px 24px; width: 100%; max-width: 480px; max-height: 90dvh; overflow-y: auto; }
+.modal-box h3 { margin-bottom: 8px; }
+.modal-box > p { margin-bottom: 20px; font-size: 0.9rem; }
+.crop-mode-tabs { display: flex; border-radius: 8px; overflow: hidden; border: 1.5px solid var(--border); margin-bottom: 20px; }
+.crop-mode-tab { flex: 1; padding: 10px; border: none; background: var(--surface); color: var(--text-muted); font-family: var(--font); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+.crop-mode-tab + .crop-mode-tab { border-left: 1.5px solid var(--border); }
+.crop-mode-tab.active { background: var(--teal); color: #fff; }
+.crop-panel { animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+.xyz-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.xyz-row .field { flex: 1; margin-bottom: 0; }
+.xyz-row .field label { font-size: 0.75rem; text-align: center; }
+.crop-skip-notice { background: var(--surface2); border-radius: 8px; padding: 16px; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px; }
 </style>
 </head>
 <body>
@@ -498,6 +519,56 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--text-muted); }
 
 </div><!-- #app -->
 
+<!-- ── Crop modal ────────────────────────────────────────────────────────── -->
+<div id="crop-modal" class="modal-overlay" onclick="if(event.target===this)closeCropModal()">
+  <div class="modal-box">
+    <h3>Set Crop Region</h3>
+    <p>Define the bounds for the Gaussian splat. Splats outside this region will be removed before export.</p>
+    <div class="crop-mode-tabs">
+      <button class="crop-mode-tab active" id="ctab-box"    onclick="setCropMode('box')">Box</button>
+      <button class="crop-mode-tab"        id="ctab-sphere" onclick="setCropMode('sphere')">Sphere</button>
+      <button class="crop-mode-tab"        id="ctab-none"   onclick="setCropMode('none')">Skip</button>
+    </div>
+    <!-- Box inputs -->
+    <div id="crop-panel-box" class="crop-panel">
+      <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:8px;">Minimum corner (X, Y, Z)</label>
+      <div class="xyz-row">
+        <div class="field"><label>X</label><input type="number" id="cmin-x" placeholder="-1.0" step="0.01"></div>
+        <div class="field"><label>Y</label><input type="number" id="cmin-y" placeholder="-1.0" step="0.01"></div>
+        <div class="field"><label>Z</label><input type="number" id="cmin-z" placeholder="-1.0" step="0.01"></div>
+      </div>
+      <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:8px;">Maximum corner (X, Y, Z)</label>
+      <div class="xyz-row">
+        <div class="field"><label>X</label><input type="number" id="cmax-x" placeholder="1.0" step="0.01"></div>
+        <div class="field"><label>Y</label><input type="number" id="cmax-y" placeholder="1.0" step="0.01"></div>
+        <div class="field"><label>Z</label><input type="number" id="cmax-z" placeholder="1.0" step="0.01"></div>
+      </div>
+    </div>
+    <!-- Sphere inputs -->
+    <div id="crop-panel-sphere" class="crop-panel" style="display:none">
+      <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:8px;">Centre (X, Y, Z)</label>
+      <div class="xyz-row">
+        <div class="field"><label>X</label><input type="number" id="csph-cx" placeholder="0.0" step="0.01"></div>
+        <div class="field"><label>Y</label><input type="number" id="csph-cy" placeholder="0.0" step="0.01"></div>
+        <div class="field"><label>Z</label><input type="number" id="csph-cz" placeholder="0.0" step="0.01"></div>
+      </div>
+      <div class="field">
+        <label>Radius</label>
+        <input type="number" id="csph-r" placeholder="1.0" step="0.01" min="0.001">
+      </div>
+    </div>
+    <!-- Skip message -->
+    <div id="crop-panel-none" class="crop-panel crop-skip-notice" style="display:none">
+      The raw splat will be used without any cropping. All Gaussians will be kept.
+    </div>
+    <div id="crop-error" style="color:var(--red);display:none;margin-bottom:12px;font-size:0.85rem;"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="crop-submit-btn" onclick="submitCrop()">Apply Crop</button>
+      <button class="btn btn-ghost" onclick="closeCropModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Diagnostics panel ──────────────────────────────────────────────── -->
 <div id="diag-panel">
   <div class="diag-box">
@@ -543,6 +614,7 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--text-muted); }
     <button class="dbtn teal" onclick="dbSimJob(1)">Sim Rig A</button>
     <button class="dbtn teal" onclick="dbSimJob(2)">Sim Rig B</button>
     <button class="dbtn" onclick="dbSimFail()">Sim fail</button>
+    <button class="dbtn" onclick="dbSimCrop()">Sim crop</button>
     <button class="dbtn" onclick="dbSimOffline()">Sim offline</button>
     <button class="dbtn" onclick="resetAll()">Reset</button>
     <span id="debug-sim-status" style="color:var(--amber);margin-left:4px;"></span>
@@ -816,7 +888,7 @@ function showCaptureError(msg) {
    Pipeline step rendering
 ───────────────────────────────────────────────────────────────────────── */
 const STEP_ICONS = {
-  waiting: '○', running: '●', done: '✓', failed: '✕', skipped: '–',
+  waiting: '○', running: '●', done: '✓', failed: '✕', skipped: '–', awaiting_crop: '⧖',
 };
 
 function renderCaptureSteps(steps) {
@@ -872,6 +944,9 @@ async function pollJob() {
       document.getElementById('capture-headline').textContent = 'Pipeline failed';
       document.getElementById('capture-sub').textContent = job.error || 'Contact a staff member.';
       document.getElementById('capture-retry-row').style.display = 'block';
+    } else if (job.status === 'awaiting_crop') {
+      document.getElementById('capture-headline').textContent = 'Waiting for crop…';
+      document.getElementById('capture-sub').textContent = 'Staff is setting the crop region in the Jobs view.';
     }
   } catch (_) { /* network blip, keep polling */ }
 }
@@ -977,6 +1052,10 @@ function renderJobCard(job) {
   const ts = isNaN(tsDate) ? '—' : tsDate.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   const boothLabel = job.rig === 1 ? 'Booth A' : 'Booth B';
 
+  const cropBtn = job.status === 'awaiting_crop'
+    ? `<button class="btn btn-sm" style="background:var(--amber);color:#000;font-weight:700;margin-top:10px;width:100%;" onclick="openCropModal('${esc(job.job_id)}')">⧖ Set Crop Region →</button>`
+    : '';
+
   return `
     <div class="job-card">
       <div class="job-card-header">
@@ -984,10 +1063,11 @@ function renderJobCard(job) {
           <div class="job-card-name">${esc(job.guest_name || '—')}</div>
           <div class="job-card-meta">${boothLabel} · ${ts} · #${esc(job.job_id)}</div>
         </div>
-        <div class="job-status-pill ${statusClass}">${job.status}</div>
+        <div class="job-status-pill ${statusClass}">${job.status.replace('_', ' ')}</div>
       </div>
       <div class="step-progress">${stepsHtml}</div>
       ${job.error ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--red);">${esc(job.error)}</div>` : ''}
+      ${cropBtn}
     </div>
   `;
 }
@@ -1012,6 +1092,101 @@ function renderPendingList() {
 
 function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Crop modal
+───────────────────────────────────────────────────────────────────────── */
+let _cropJobId  = null;
+let _cropMode   = 'box';
+
+function openCropModal(jobId) {
+  _cropJobId = jobId;
+  setCropMode('box');
+  ['cmin-x','cmin-y','cmin-z','cmax-x','cmax-y','cmax-z',
+   'csph-cx','csph-cy','csph-cz','csph-r'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const errEl = document.getElementById('crop-error');
+  errEl.style.display = 'none';
+  const btn = document.getElementById('crop-submit-btn');
+  btn.disabled = false;
+  btn.textContent = 'Apply Crop';
+  document.getElementById('crop-modal').classList.add('open');
+}
+
+function closeCropModal() {
+  document.getElementById('crop-modal').classList.remove('open');
+  _cropJobId = null;
+}
+
+function setCropMode(mode) {
+  _cropMode = mode;
+  ['box','sphere','none'].forEach(m => {
+    document.getElementById('ctab-' + m).classList.toggle('active', m === mode);
+    document.getElementById('crop-panel-' + m).style.display = m === mode ? 'block' : 'none';
+  });
+}
+
+async function submitCrop() {
+  if (!_cropJobId) return;
+  const errEl = document.getElementById('crop-error');
+  errEl.style.display = 'none';
+
+  let body = { mode: _cropMode };
+
+  if (_cropMode === 'box') {
+    const vals = ['cmin-x','cmin-y','cmin-z','cmax-x','cmax-y','cmax-z']
+      .map(id => parseFloat(document.getElementById(id).value));
+    if (vals.some(isNaN)) {
+      errEl.textContent = 'All 6 coordinates are required for a box crop.';
+      errEl.style.display = 'block';
+      return;
+    }
+    body.min = vals.slice(0, 3);
+    body.max = vals.slice(3, 6);
+  } else if (_cropMode === 'sphere') {
+    const cx = parseFloat(document.getElementById('csph-cx').value);
+    const cy = parseFloat(document.getElementById('csph-cy').value);
+    const cz = parseFloat(document.getElementById('csph-cz').value);
+    const r  = parseFloat(document.getElementById('csph-r').value);
+    if ([cx, cy, cz, r].some(isNaN) || r <= 0) {
+      errEl.textContent = 'Centre (X, Y, Z) and a positive radius are required.';
+      errEl.style.display = 'block';
+      return;
+    }
+    body.center = [cx, cy, cz];
+    body.radius = r;
+  }
+
+  const btn = document.getElementById('crop-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Applying…';
+
+  try {
+    const resp = await fetch(serverUrl() + '/api/jobs/' + _cropJobId + '/crop', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      closeCropModal();
+      showToast(`Crop applied (${_cropMode})`);
+      if (jobsTab === 'jobs') fetchAndRenderJobs();
+    } else {
+      errEl.textContent = data.error || 'Server error';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Apply Crop';
+    }
+  } catch (e) {
+    errEl.textContent = 'Network error: ' + e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Apply Crop';
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -1283,13 +1458,13 @@ function dbSimJob(rig) {
   state.print3d = rig === 2;
 
   const steps = rig === 1
-    ? ['images_received','colmap_align','lichtfeld_splat','splat_trim','splat_compress','email_delivery']
-    : ['images_received','colmap_align','autorc_mesh','lichtfeld_splat','splat_trim','splat_compress','prusa_handoff','email_delivery'];
+    ? ['images_received','colmap_align','lichtfeld_splat','splat_crop','splat_compress','email_delivery']
+    : ['images_received','colmap_align','autorc_mesh','lichtfeld_splat','splat_crop','splat_compress','prusa_handoff','email_delivery'];
 
   const labels = {
     images_received: 'Images received',  colmap_align: 'COLMAP alignment',
-    lichtfeld_splat: 'Gaussian splat',   splat_trim: 'Trim bounding region',
-    splat_compress:  'Compress splat',   email_delivery: 'Email guest',
+    lichtfeld_splat: 'Gaussian splat',   splat_crop: 'Crop bounding region',
+    splat_compress:  'Compress & export', email_delivery: 'Email guest',
     autorc_mesh:     'Mesh reconstruction', prusa_handoff: 'Send to Prusa',
   };
 
@@ -1345,12 +1520,12 @@ function dbSimFail() {
   state.jobId = 'dbg-fail-' + Date.now().toString(36);
 
   const steps = [
-    { id: 'images_received', label: 'Images received',  status: 'done' },
-    { id: 'colmap_align',    label: 'COLMAP alignment', status: 'done' },
-    { id: 'lichtfeld_splat', label: 'Gaussian splat',   status: 'failed' },
-    { id: 'splat_trim',      label: 'Trim bounding region', status: 'waiting' },
-    { id: 'splat_compress',  label: 'Compress splat',   status: 'waiting' },
-    { id: 'email_delivery',  label: 'Email guest',      status: 'waiting' },
+    { id: 'images_received', label: 'Images received',    status: 'done' },
+    { id: 'colmap_align',    label: 'COLMAP alignment',  status: 'done' },
+    { id: 'lichtfeld_splat', label: 'Gaussian splat',    status: 'failed' },
+    { id: 'splat_crop',      label: 'Crop bounding region', status: 'waiting' },
+    { id: 'splat_compress',  label: 'Compress & export', status: 'waiting' },
+    { id: 'email_delivery',  label: 'Email guest',       status: 'waiting' },
   ];
 
   goto('capture');
@@ -1359,6 +1534,36 @@ function dbSimFail() {
   document.getElementById('capture-retry-row').style.display = 'block';
   renderCaptureSteps(steps);
   showToast('[Debug] Simulated failure on step 3');
+}
+
+// Simulate a job paused at the crop step (awaiting_crop)
+function dbSimCrop() {
+  if (_dbSimTimer) { clearTimeout(_dbSimTimer); _dbSimTimer = null; }
+  if (!state.guest.fname) dbFillState();
+  state.rig   = 1;
+  state.jobId = 'dbg-crop-' + Date.now().toString(36);
+
+  const mockJob = {
+    job_id: state.jobId, rig: 1, guest_name: 'Ada Lovelace',
+    status: 'awaiting_crop', created_at: new Date().toISOString(),
+    error: null, outputs: { raw_ply: '/mock/splat_7000.ply' },
+    steps: [
+      { id: 'images_received', label: 'Images received',    status: 'done' },
+      { id: 'colmap_align',    label: 'COLMAP alignment',  status: 'done' },
+      { id: 'lichtfeld_splat', label: 'Gaussian splat',    status: 'done' },
+      { id: 'splat_crop',      label: 'Crop bounding region', status: 'awaiting_crop' },
+      { id: 'splat_compress',  label: 'Compress & export', status: 'waiting' },
+      { id: 'email_delivery',  label: 'Email guest',       status: 'waiting' },
+    ],
+  };
+  _dbMockJobs[state.jobId] = mockJob;
+
+  goto('capture');
+  renderCaptureSteps(mockJob.steps);
+  document.getElementById('capture-headline').textContent = 'Waiting for crop…';
+  document.getElementById('capture-sub').textContent = 'Staff is setting the crop region in the Jobs view.';
+  document.getElementById('capture-retry-row').style.display = 'none';
+  showToast('[Debug] Paused at crop — switch to Jobs tab to set crop');
 }
 
 // Simulate going offline and saving a submission to the queue
@@ -1383,6 +1588,27 @@ const _realFetch = window.fetch.bind(window);
 window.fetch = function(url, opts) {
   if (!DEBUG) return _realFetch(url, opts);
   const u = String(url);
+
+  // Mock POST /api/jobs/<id>/crop
+  const cropMatch = u.match(/\/api\/jobs\/([^/?]+)\/crop$/);
+  if (cropMatch && opts?.method === 'POST') {
+    const jobId = cropMatch[1];
+    const body  = JSON.parse(opts.body || '{}');
+    const job   = _dbMockJobs[jobId];
+    if (job) {
+      job.crop_config = body;
+      job.status = 'running';
+      const cropStep = job.steps.find(s => s.id === 'splat_crop');
+      if (cropStep) cropStep.status = 'running';
+      // Advance to done after a moment (mock crop processing)
+      setTimeout(() => {
+        if (cropStep) cropStep.status = 'done';
+        const compStep = job.steps.find(s => s.id === 'splat_compress');
+        if (compStep) compStep.status = 'running';
+      }, 1500);
+    }
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, job_id: jobId, crop_mode: body.mode }) });
+  }
 
   // Mock GET /api/jobs/<id>
   const jobMatch = u.match(/\/api\/jobs\/([^/?]+)$/);

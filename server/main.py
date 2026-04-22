@@ -14,7 +14,7 @@ from pathlib import Path
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-from pipeline.job_manager import job_manager
+from pipeline.job_manager import job_manager, PipelineMode
 from pipeline.watcher import FolderWatcher
 from pipeline.runner import dispatch
 
@@ -126,7 +126,7 @@ def images_ready():
         return jsonify({"ok": False, "error": "Job not found"}), 404
 
     log.info(f"Images ready for job {job.job_id} — dispatching pipeline")
-    dispatch(job, src_folder, CONFIG)
+    dispatch(job, CONFIG, src_folder=src_folder)
 
     return jsonify({"ok": True, "job_id": job.job_id})
 
@@ -143,6 +143,80 @@ def get_job(job_id: str):
     if not job:
         return jsonify({"ok": False, "error": "Not found"}), 404
     return jsonify({"ok": True, "job": job.to_dict()})
+
+
+@app.post("/api/jobs/<job_id>/crop")
+def set_crop(job_id: str):
+    """Staff endpoint — provide manual crop config for a paused AWAITING_CROP job.
+
+    Body (one of):
+        {"mode": "box",    "min": [x,y,z], "max": [X,Y,Z]}
+        {"mode": "sphere", "center": [x,y,z], "radius": r}
+        {"mode": "none"}   ← skip crop, use raw .ply as-is
+    """
+    job = job_manager.get(job_id)
+    if not job:
+        return jsonify({"ok": False, "error": "Not found"}), 404
+
+    from pipeline.job_manager import JobStatus
+    if job.status != JobStatus.AWAITING_CROP:
+        return jsonify({"ok": False, "error": f"Job is not awaiting crop (status: {job.status})"}), 409
+
+    data = request.get_json(force=True)
+    mode = data.get("mode")
+    if mode not in ("box", "sphere", "none"):
+        return jsonify({"ok": False, "error": "mode must be 'box', 'sphere', or 'none'"}), 400
+
+    if mode == "box":
+        if not isinstance(data.get("min"), list) or not isinstance(data.get("max"), list):
+            return jsonify({"ok": False, "error": "box requires 'min' and 'max' arrays"}), 400
+    elif mode == "sphere":
+        if not isinstance(data.get("center"), list) or not isinstance(data.get("radius"), (int, float)):
+            return jsonify({"ok": False, "error": "sphere requires 'center' array and 'radius' number"}), 400
+
+    job.crop_config = data
+    job.crop_event.set()  # unblock the pipeline thread in step_crop_splat
+    log.info(f"Crop config set for job {job_id}: mode={mode}")
+    return jsonify({"ok": True, "job_id": job_id, "crop_mode": mode})
+
+
+@app.post("/api/run")
+def manual_run():
+    """Staff endpoint — trigger a pipeline run for an arbitrary input path.
+
+    Body:
+        {
+            "mode":       "splat" | "from_colmap" | "compress_only" | "mesh",
+            "path":       "/path/to/images_folder_or_colmap_dir_or_ply",
+            "guest":      {"name": "...", "email": "..."},   // optional
+            "session_id": "...",                              // optional
+            "rig":        1                                   // optional, defaults to config rig
+        }
+    """
+    data       = request.get_json(force=True)
+    mode_str   = data.get("mode", "splat")
+    start_path = data.get("path", "")
+    guest      = data.get("guest", {"name": "staff-test"})
+    rig        = data.get("rig", RIG)
+    session_id = data.get("session_id") or f"manual-{mode_str}"
+
+    try:
+        mode = PipelineMode(mode_str)
+    except ValueError:
+        valid = [m.value for m in PipelineMode]
+        return jsonify({"ok": False, "error": f"Unknown mode '{mode_str}'. Valid: {valid}"}), 400
+
+    if not start_path:
+        return jsonify({"ok": False, "error": "Missing 'path'"}), 400
+
+    job = job_manager.create(session_id, rig, guest, mode=mode, start_path=start_path)
+    log.info(f"Manual run: mode={mode_str} path={start_path} job={job.job_id}")
+
+    # For modes that start from images, src_folder = start_path
+    # For FROM_COLMAP / COMPRESS_ONLY, start_path is set on job and dispatch reads it
+    dispatch(job, CONFIG, src_folder=start_path)
+
+    return jsonify({"ok": True, "job_id": job.job_id, "mode": mode_str})
 
 
 @app.post("/api/sync")
@@ -183,7 +257,7 @@ def _on_images_settled(folder: str, image_count: int):
 
     if job:
         log.info(f"Matched images to job {job.job_id} ({job.guest.get('name')})")
-        dispatch(job, folder, CONFIG)
+        dispatch(job, CONFIG, src_folder=folder)
 
 
 def _start_watcher():
