@@ -30,9 +30,23 @@ def _project_dir(projects_root: str, session_id: str, guest_name: str) -> str:
     return os.path.join(projects_root, folder)
 
 
-def _run(cmd: list[str], cwd: Optional[str] = None, timeout: int = 3600) -> subprocess.CompletedProcess:
-    log.info(f"$ {' '.join(cmd)}")
-    return subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, timeout=timeout)
+def _make_env(extra_path_dirs: list[str] = None) -> dict:
+    """Build an env dict with optional extra dirs prepended to PATH.
+    Used to inject bundled DLL directories (e.g. COLMAP's lib/) so that
+    executables find their dependencies without a system-wide install.
+    """
+    env = os.environ.copy()
+    if extra_path_dirs:
+        env["PATH"] = ";".join(extra_path_dirs) + ";" + env.get("PATH", "")
+    return env
+
+
+def _run(cmd: list[str], cwd: Optional[str] = None, timeout: int = 3600,
+         extra_path_dirs: list[str] = None) -> subprocess.CompletedProcess:
+    log.info(f"$ {' '.join(str(c) for c in cmd)}")
+    env = _make_env(extra_path_dirs)
+    return subprocess.run(cmd, capture_output=True, text=True, cwd=cwd,
+                          timeout=timeout, env=env)
 
 
 # ── individual steps ─────────────────────────────────────────────────────────
@@ -96,6 +110,9 @@ def step_colmap(job: Job, config: dict):
     os.makedirs(sparse_dir, exist_ok=True)
 
     colmap = config["paths"]["colmap_exe"]
+    # COLMAP ships bundled DLLs in ../lib — inject into PATH so the exe finds them
+    colmap_lib = str(Path(colmap).parent.parent / "lib")
+    colmap_env = [colmap_lib] if Path(colmap_lib).exists() else []
 
     steps = [
         [colmap, "feature_extractor",
@@ -116,7 +133,7 @@ def step_colmap(job: Job, config: dict):
     ]
 
     for cmd in steps:
-        result = _run(cmd)
+        result = _run(cmd, extra_path_dirs=colmap_env)
         if result.returncode != 0:
             raise RuntimeError(f"COLMAP failed:\n{result.stderr}")
 
@@ -152,20 +169,21 @@ def step_lichtfeld(job: Job, config: dict):
         lichtfeld,
         "--data-path",   colmap_dir,
         "--output-path", splats_dir,
-        "--output-name", output_name,
         "--iter",        str(iterations),
         "--headless",
-        "--train",
+        "--undistort",   # required when COLMAP uses SIMPLE_RADIAL or any distorted model
+        # --train / --output-name are v0.5.x only; v0.4.2 starts training immediately
     ]
 
     result = _run(cmd, timeout=7200)
     if result.returncode != 0:
         raise RuntimeError(f"LichtFeld failed:\n{result.stderr}")
 
-    # LichtFeld writes <output-path>/<output-name>.ply on completion
-    output_ply = os.path.join(splats_dir, f"{output_name}.ply")
-    if not os.path.exists(output_ply):
-        raise RuntimeError(f"LichtFeld finished but {output_ply} not found — check logs")
+    # LichtFeld writes splat_<iter>.ply (or similar) — find the newest PLY
+    plys = sorted(Path(splats_dir).glob("*.ply"), key=lambda p: p.stat().st_mtime)
+    if not plys:
+        raise RuntimeError(f"LichtFeld finished but no .ply found in {splats_dir} — check logs")
+    output_ply = str(plys[-1])
 
     job.outputs["raw_ply"] = output_ply
 

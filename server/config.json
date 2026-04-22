@@ -9,7 +9,8 @@
     "autorc_exe": "D:\\Reconstructions\\20221223-AutoRC\\autorc.exe",
     "autorc_preset": "D:\\Reconstructions\\20221223-AutoRC\\data\\presets\\opensauce-2026",
     "colmap_exe": "C:\\Users\\Winslow\\COLMAP-3.8-windows-cuda\\bin\\colmap.exe",
-    "lichtfeld_exe": "C:\\Users\\Winslow\\Documents\\Gaussian Splatting\\SCANDY CLAUDE\\tools\\brush\\postshot-cli.exe",
+    "_colmap_note": "lib/ dir is auto-injected into PATH by runner.py — do not use COLMAP.bat",
+    "lichtfeld_exe": "C:\\Users\\Winslow\\AppData\\Local\\LichtFeld Studio\\bin\\LichtFeld-Studio.exe",
     "rcbox_file": "E:\\Scan The Wild\\calibration\\opensauce-2026.rcbox",
     "splat_transform": "splat-transform"
   },
