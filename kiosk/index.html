@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Open Sauce 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Design tokens ─────────────────────────────────────────────────────── */
+:root {
+  --bg:        #0a0a0f;
+  --surface:   #1c1c26;
+  --surface2:  #252535;
+  --border:    #2a2a3a;
+  --teal:      #1D9E75;
+  --teal-dim:  #16705280;
+  --amber:     #EF9F27;
+  --amber-dim: #EF9F2740;
+  --purple:    #7F77DD;
+  --purple-dim:#7F77DD40;
+  --text:      #f0f0f8;
+  --text-muted:#7a7a9a;
+  --text-dim:  #4a4a6a;
+  --red:       #e05555;
+  --green:     #1D9E75;
+  --radius-sm: 8px;
+  --radius:    12px;
+  --radius-lg: 16px;
+  --pad:       20px;
+  --font:      'Inter', system-ui, sans-serif;
+  --mono:      'JetBrains Mono', monospace;
+}
+
+/* ── Reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+/* Use dvh on screens with inputs so keyboard doesn't clip content */
+.screen { min-height: 100dvh; }
+
+/* ── App shell ─────────────────────────────────────────────────────────── */
+#app { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+/* ── Screen layers ─────────────────────────────────────────────────────── */
+.screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; padding: var(--pad); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+.screen-inner { width: 100%; max-width: 560px; margin: auto; padding: 20px 0; }
+
+/* ── Typography ────────────────────────────────────────────────────────── */
+h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+h2 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p  { font-size: 1rem; line-height: 1.6; color: var(--text-muted); }
+.mono { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.04em; color: var(--text-muted); }
+
+/* ── Progress dots ─────────────────────────────────────────────────────── */
+.progress-dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 32px; }
+.progress-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
+.progress-dots span.active { background: var(--teal); }
+.progress-dots span.done { background: var(--teal); opacity: 0.4; }
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 28px; border: none; border-radius: 10px; font-family: var(--font); font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; -webkit-tap-highlight-color: transparent; user-select: none; }
+.btn:active { opacity: 0.8; transform: scale(0.98); }
+.btn-primary { background: var(--teal); color: #fff; width: 100%; }
+.btn-secondary { background: var(--surface2); color: var(--text); width: 100%; }
+.btn-ghost { background: transparent; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; padding: 16px 20px; min-height: 44px; } /* 44pt touch target */
+.btn-sm { padding: 10px 18px; font-size: 0.85rem; border-radius: 8px; }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-row { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+
+/* ── Inputs ────────────────────────────────────────────────────────────── */
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+.field input { width: 100%; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; font-family: var(--font); font-size: 1rem; color: var(--text); outline: none; transition: border-color 0.2s; }
+.field input:focus { border-color: var(--teal); }
+.field input::placeholder { color: var(--text-dim); }
+.field input.error { border-color: var(--red); }
+.field .hint { font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
+.field .error-msg { font-size: 0.8rem; color: var(--red); margin-top: 4px; display: none; }
+.field.has-error .error-msg { display: block; }
+.field.has-error label { color: var(--red); }
+
+/* ── Cards ─────────────────────────────────────────────────────────────── */
+.card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.card-selectable { cursor: pointer; border: 2px solid var(--border); transition: border-color 0.2s, background 0.2s; -webkit-tap-highlight-color: transparent; }
+.card-selectable:active { transform: scale(0.98); }
+.card-selectable.selected-teal { border-color: var(--teal); background: #1D9E7512; }
+.card-selectable.selected-purple { border-color: var(--purple); background: #7F77DD12; }
+.card-rig-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+.card-rig-label.teal { color: var(--teal); }
+.card-rig-label.purple { color: var(--purple); }
+.card-rig-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+.card-rig-sub { font-size: 0.8rem; color: var(--text-muted); }
+
+/* ── Toggle / Pills ────────────────────────────────────────────────────── */
+.toggle-group { display: flex; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.toggle-group button { flex: 1; padding: 12px; background: none; border: none; font-family: var(--font); font-size: 0.9rem; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: background 0.15s, color 0.15s; }
+.toggle-group button.active { background: var(--teal); color: #fff; font-weight: 600; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 100px; font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; }
+.pill:active { opacity: 0.7; }
+
+/* ── Check toggle ──────────────────────────────────────────────────────── */
+.check-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.check-row-label { font-size: 0.95rem; font-weight: 500; }
+.check-row-sub { font-size: 0.8rem; color: var(--text-muted); }
+.check-box { width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--border); background: none; display: flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s; flex-shrink: 0; }
+.check-box.checked { background: var(--teal); border-color: var(--teal); }
+.check-box.checked::after { content: '✓'; color: #fff; font-size: 14px; font-weight: 700; }
+
+/* ── Section header ────────────────────────────────────────────────────── */
+.screen-header { margin-bottom: 28px; }
+.screen-header h2 { margin-bottom: 6px; }
+
+/* ── Capture animation ─────────────────────────────────────────────────── */
+@keyframes pulse-ring {
+  0%   { transform: scale(0.9); opacity: 1; }
+  50%  { transform: scale(1.15); opacity: 0.3; }
+  100% { transform: scale(0.9); opacity: 1; }
+}
+.capture-ring { width: 80px; height: 80px; border-radius: 50%; background: var(--teal-dim); border: 3px solid var(--teal); display: flex; align-items: center; justify-content: center; animation: pulse-ring 2s ease-in-out infinite; margin: 0 auto 28px; }
+.capture-ring svg { width: 36px; height: 36px; color: var(--teal); }
+
+/* ── Pipeline steps ────────────────────────────────────────────────────── */
+.steps-list { display: flex; flex-direction: column; gap: 8px; }
+.step-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); transition: border-color 0.3s; }
+.step-row.running { border-color: var(--amber); }
+.step-row.done { border-color: var(--teal); opacity: 0.8; }
+.step-row.failed { border-color: var(--red); }
+.step-icon { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; transition: background 0.3s, border-color 0.3s; }
+.step-icon.waiting { border-color: var(--border); color: var(--text-dim); }
+.step-icon.running { border-color: var(--amber); background: var(--amber-dim); color: var(--amber); animation: pulse-ring 1.5s ease-in-out infinite; }
+.step-icon.done { border-color: var(--teal); background: var(--teal); color: #fff; }
+.step-icon.failed { border-color: var(--red); background: var(--red); color: #fff; }
+.step-icon.skipped { border-color: var(--border); opacity: 0.4; }
+.step-label { font-size: 0.9rem; font-weight: 500; flex: 1; }
+.step-label.running { color: var(--amber); }
+.step-label.done { color: var(--text-muted); }
+
+/* ── Job cards ─────────────────────────────────────────────────────────── */
+.job-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; }
+.job-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.job-card-name { font-size: 1rem; font-weight: 600; }
+.job-card-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+.job-status-pill { padding: 3px 10px; border-radius: 100px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.job-status-pill.running { background: var(--amber-dim); color: var(--amber); }
+.job-status-pill.queued { background: var(--surface2); color: var(--text-muted); }
+.job-status-pill.completed { background: var(--teal-dim); color: var(--teal); }
+.job-status-pill.failed { background: #e0555520; color: var(--red); }
+.step-progress { display: flex; gap: 4px; }
+.step-pip { height: 4px; flex: 1; border-radius: 2px; background: var(--border); transition: background 0.3s; }
+.step-pip.done { background: var(--teal); }
+.step-pip.running { background: var(--amber); }
+.step-pip.failed { background: var(--red); }
+
+/* ── Tab bar ───────────────────────────────────────────────────────────── */
+.tab-bar { display: flex; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+.tab-btn { flex: 1; padding: 12px; background: none; border: none; font-family: var(--font); font-size: 0.95rem; font-weight: 500; color: var(--text-muted); cursor: pointer; }
+.tab-btn.active { background: var(--teal); color: #fff; font-weight: 600; }
+
+/* ── Welcome screen ────────────────────────────────────────────────────── */
+#screen-welcome { background: var(--bg); }
+.welcome-logo { text-align: center; margin-bottom: 48px; }
+.welcome-logo .wordmark { font-size: 1rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 20px; font-family: var(--mono); }
+.welcome-logo .headline { font-size: 3.2rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--text); margin-bottom: 12px; }
+.welcome-logo .tagline { font-size: 1.2rem; color: var(--text-muted); font-weight: 300; }
+.logo-dot { color: var(--teal); }
+
+/* ── Confirmation modal ────────────────────────────────────────────────── */
+#screen-confirm { background: var(--bg); }
+.confirm-section { margin-bottom: 16px; }
+.confirm-section-title { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+.confirm-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.confirm-row:last-child { border-bottom: none; }
+.confirm-row-key { font-size: 0.85rem; color: var(--text-muted); }
+.confirm-row-val { font-size: 0.85rem; font-weight: 500; text-align: right; max-width: 60%; word-break: break-all; }
+
+/* ── Delivery complete ─────────────────────────────────────────────────── */
+#screen-done { text-align: center; }
+.done-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--teal-dim); border: 3px solid var(--teal); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 2rem; }
+.countdown-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 20px; overflow: hidden; }
+.countdown-bar-fill { height: 100%; background: var(--teal); border-radius: 2px; width: 100%; transition: width 1s linear; }
+
+/* ── Diagnostics panel ─────────────────────────────────────────────────── */
+#diag-panel { display: none; position: fixed; inset: 0; background: #000000cc; z-index: 999; align-items: center; justify-content: center; }
+#diag-panel.open { display: flex; }
+.diag-box { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 24px; width: 90%; max-width: 400px; }
+.diag-box h3 { margin-bottom: 20px; }
+.diag-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 0.9rem; }
+.diag-box input { width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 0.85rem; color: var(--text); outline: none; margin-bottom: 12px; }
+.diag-box input:focus { border-color: var(--teal); }
+.ping-result { font-family: var(--mono); font-size: 0.8rem; padding: 8px; background: var(--bg); border-radius: 6px; margin-top: 8px; margin-bottom: 12px; min-height: 32px; color: var(--text-muted); }
+
+/* ── Toast ─────────────────────────────────────────────────────────────── */
+#toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 20px; font-size: 0.9rem; opacity: 0; transition: opacity 0.3s, transform 0.3s; z-index: 998; white-space: nowrap; pointer-events: none; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Offline banner ────────────────────────────────────────────────────── */
+#offline-banner { display: none; position: fixed; top: 0; left: 0; right: 0; padding: 10px; background: var(--amber-dim); border-bottom: 1.5px solid var(--amber); text-align: center; font-size: 0.85rem; color: var(--amber); font-weight: 500; z-index: 997; }
+#offline-banner.show { display: block; }
+
+/* ── Divider ───────────────────────────────────────────────────────────── */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+.spacer { height: 20px; }
+
+/* ── Notice box ────────────────────────────────────────────────────────── */
+.notice { background: var(--teal-dim); border: 1.5px solid var(--teal); border-radius: var(--radius-sm); padding: 14px 16px; font-size: 0.9rem; color: var(--teal); }
+.notice.amber { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+
+/* ── Back button ───────────────────────────────────────────────────────── */
+.nav-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.back-btn { display: flex; align-items: center; gap: 6px; background: none; border: none; font-family: var(--font); font-size: 0.9rem; color: var(--text-muted); cursor: pointer; padding: 12px 8px; min-height: 44px; } /* 44pt touch target */
+.back-btn:active { opacity: 0.6; }
+
+/* ── Scrollable job list ───────────────────────────────────────────────── */
+.jobs-list { max-height: calc(100vh - 260px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.empty-state { text-align: center; padding: 40px 0; color: var(--text-dim); font-size: 0.9rem; }
+
+/* ── Debug bar ─────────────────────────────────────────────────────────── */
+#debug-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #12121e; border-top: 2px solid var(--amber); padding: 10px 16px; z-index: 9999; font-family: var(--mono); font-size: 0.75rem; }
+#debug-bar.visible { display: flex; flex-direction: column; gap: 8px; }
+.debug-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.debug-label { color: var(--amber); font-weight: 600; min-width: 56px; }
+.dbtn { padding: 5px 10px; border-radius: 6px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); font-family: var(--mono); font-size: 0.7rem; cursor: pointer; }
+.dbtn:hover { border-color: var(--amber); color: var(--amber); }
+.dbtn.active { background: var(--amber); color: #000; border-color: var(--amber); font-weight: 700; }
+.dbtn.teal { border-color: var(--teal); color: var(--teal); }
+.dbtn.teal.active { background: var(--teal); color: #fff; }
+#debug-state { color: var(--text-dim); font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.screen.active { padding-bottom: 120px; } /* room for debug bar */
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Screen 0: Welcome ──────────────────────────────────────────────── -->
+  <div id="screen-welcome" class="screen active">
+    <div class="screen-inner" style="text-align:center;">
+      <div class="welcome-logo" id="logo-tap-target">
+        <div class="wordmark">Open Sauce 2026</div>
+        <div class="headline">Ready to<br>scan<span class="logo-dot">.</span></div>
+        <div class="tagline" style="margin-top:12px;">Step up. Get scanned. Take home a 3D of yourself.</div>
+      </div>
+      <button class="btn btn-primary" style="font-size:1.1rem;padding:18px;" onclick="goto('subject')">Get Started</button>
+      <button class="btn btn-ghost" style="margin-top:12px;" onclick="goto('jobs')">Staff view</button>
+    </div>
+  </div>
+
+  <!-- ── Screen 1: Subject info ─────────────────────────────────────────── -->
+  <div id="screen-subject" class="screen">
+    <div class="screen-inner">
+      <div class="progress-dots" id="dots-subject"></div>
+      <div class="screen-header">
+        <h2>Tell us about yourself</h2>
+        <p>Your info stays private — used only for delivery.</p>
+      </div>
+      <div class="field" id="f-fname">
+        <label>First name <span style="color:var(--teal)">*</span></label>
+        <input type="text" id="inp-fname" placeholder="Ada" autocomplete="given-name" autocapitalize="words" maxlength="64">
+        <div class="error-msg">First name is required</div>
+      </div>
+      <div class="field" id="f-lname">
+        <label>Last name <span style="color:var(--teal)">*</span></label>
+        <input type="text" id="inp-lname" placeholder="Lovelace" autocomplete="family-name" autocapitalize="words" maxlength="64">
+        <div class="error-msg">Last name is required</div>
+      </div>
+      <div class="field" id="f-email">
+        <label>Email <span style="color:var(--teal)">*</span></label>
+        <input type="email" id="inp-email" placeholder="ada@lab.io" autocomplete="email" autocapitalize="none" maxlength="254">
+        <div class="error-msg">A valid email is required</div>
+      </div>
+      <div class="field">
+        <label>Organization <span class="mono">(optional)</span></label>
+        <input type="text" id="inp-org" placeholder="Analytical Engine Co." autocomplete="organization" maxlength="128">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitSubject()">Continue →</button>
+        <button class="btn btn-ghost" onclick="goto('welcome')">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 2: Social handles ──────────────────────────────────────── -->
+  <div id="screen-social" class="screen">
+    <div class="screen-inner">
+      <div class="progress-dots" id="dots-social"></div>
+      <div class="screen-header">
+        <h2>Social handles</h2>
+        <p>We'll tag you when we post your scan. All optional.</p>
+      </div>
+      <div class="field">
+        <label>Instagram</label>
+        <input type="text" id="inp-instagram" placeholder="@yourusername" autocapitalize="none" maxlength="64">
+      </div>
+      <div class="field">
+        <label>X / Twitter</label>
+        <input type="text" id="inp-twitter" placeholder="@yourusername" autocapitalize="none" maxlength="64">
+      </div>
+      <div class="field">
+        <label>LinkedIn</label>
+        <input type="text" id="inp-linkedin" placeholder="linkedin.com/in/you" autocapitalize="none" maxlength="128">
+      </div>
+      <div class="field">
+        <label>TikTok</label>
+        <input type="text" id="inp-tiktok" placeholder="@yourusername" autocapitalize="none" maxlength="64">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitSocial()">Continue →</button>
+        <button class="btn btn-ghost" onclick="goto('subject')">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 3: Booth selection ─────────────────────────────────────── -->
+  <div id="screen-booth" class="screen">
+    <div class="screen-inner">
+      <div class="nav-bar">
+        <div class="progress-dots" id="dots-booth" style="margin-bottom:0;"></div>
+        <button class="pill" onclick="goto('jobs')">⚙ Staff</button>
+      </div>
+      <div class="screen-header">
+        <h2>Choose your rig</h2>
+        <p>Each booth captures you differently.</p>
+      </div>
+      <div class="card-grid">
+        <!-- Booth A -->
+        <div class="card card-selectable" id="card-booth-a" onclick="selectBooth(1)">
+          <div class="card-rig-label teal">Booth A</div>
+          <div class="card-rig-title">Human Rig</div>
+          <div class="card-rig-sub">Gaussian splat · .splat file</div>
+          <div style="margin-top:12px;font-size:1.8rem;">🧍</div>
+        </div>
+        <!-- Booth B -->
+        <div class="card card-selectable" id="card-booth-b" onclick="selectBooth(2)">
+          <div class="card-rig-label purple">Booth B</div>
+          <div class="card-rig-title">Turntable</div>
+          <div class="card-rig-sub">Object · splat + mesh</div>
+          <div style="margin-top:12px;font-size:1.8rem;">🔄</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-booth-continue" onclick="submitBooth()" disabled>Continue →</button>
+        <button class="btn btn-ghost" onclick="goto('social')">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 4: Output format ───────────────────────────────────────── -->
+  <div id="screen-format" class="screen">
+    <div class="screen-inner">
+      <div class="progress-dots" id="dots-format"></div>
+      <div class="screen-header">
+        <h2>Output format</h2>
+      </div>
+      <!-- Booth A notice (shown when A is selected) -->
+      <div class="notice" id="format-rig1-notice" style="display:none;">
+        Booth A always outputs a Gaussian splat (.splat). No additional options.
+      </div>
+      <!-- Booth B options -->
+      <div id="format-rig2-options">
+        <div class="field" style="margin-bottom:20px;">
+          <label style="margin-bottom:10px;display:block;">Capture output</label>
+          <div class="toggle-group">
+            <button id="fmt-splat" class="active" onclick="setFormat('splat')">Splat only</button>
+            <button id="fmt-mesh" onclick="setFormat('mesh')">Mesh only</button>
+            <button id="fmt-both" onclick="setFormat('both')">Both</button>
+          </div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div class="check-row" onclick="toggle3DPrint()" id="print-row">
+            <div>
+              <div class="check-row-label">3D print handoff</div>
+              <div class="check-row-sub">Send mesh to Prusa at the booth for printing</div>
+            </div>
+            <div class="check-box" id="print-check"></div>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitFormat()">Review →</button>
+        <button class="btn btn-ghost" onclick="goto('booth')">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 5: Confirmation ─────────────────────────────────────────── -->
+  <div id="screen-confirm" class="screen">
+    <div class="screen-inner">
+      <div class="screen-header">
+        <h2>Confirm your scan</h2>
+        <p>Everything look right?</p>
+      </div>
+      <div class="card" style="padding:16px;">
+        <div class="confirm-section">
+          <div class="confirm-section-title">Guest</div>
+          <div class="confirm-row"><span class="confirm-row-key">Name</span><span class="confirm-row-val" id="cf-name">—</span></div>
+          <div class="confirm-row"><span class="confirm-row-key">Email</span><span class="confirm-row-val" id="cf-email">—</span></div>
+          <div class="confirm-row" id="cf-org-row"><span class="confirm-row-key">Org</span><span class="confirm-row-val" id="cf-org">—</span></div>
+        </div>
+        <div class="confirm-section" id="cf-social-section">
+          <div class="confirm-section-title">Socials</div>
+          <div id="cf-socials"></div>
+        </div>
+        <div class="confirm-section">
+          <div class="confirm-section-title">Scan</div>
+          <div class="confirm-row"><span class="confirm-row-key">Booth</span><span class="confirm-row-val" id="cf-booth">—</span></div>
+          <div class="confirm-row" id="cf-format-row"><span class="confirm-row-key">Format</span><span class="confirm-row-val" id="cf-format">—</span></div>
+          <div class="confirm-row" id="cf-print-row"><span class="confirm-row-key">3D Print</span><span class="confirm-row-val">Yes</span></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-start-scan" onclick="startScan()">Start Scan →</button>
+        <button class="btn btn-ghost" onclick="goto('format')">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 6: Capture (pipeline) ──────────────────────────────────── -->
+  <div id="screen-capture" class="screen">
+    <div class="screen-inner">
+      <div class="capture-ring">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v4l2.5 2.5"/>
+        </svg>
+      </div>
+      <h2 style="text-align:center;margin-bottom:6px;" id="capture-headline">Processing…</h2>
+      <p style="text-align:center;margin-bottom:24px;" id="capture-sub">Your scan is in the pipeline.</p>
+      <div class="steps-list" id="capture-steps"></div>
+      <div id="capture-retry-row" style="display:none;margin-top:16px;">
+        <button class="btn btn-secondary" onclick="goto('confirm')">← Try again</button>
+      </div>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-ghost" onclick="stopPolling(); goto('jobs')">View all jobs</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 7: Jobs view ────────────────────────────────────────────── -->
+  <div id="screen-jobs" class="screen">
+    <div class="screen-inner">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <h2>Operations</h2>
+        <button class="btn btn-sm" style="background:var(--teal);color:#fff;" onclick="resetAll()">+ New scan</button>
+      </div>
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-intake-btn" onclick="switchJobTab('intake')">Intake</button>
+        <button class="tab-btn" id="tab-jobs-btn" onclick="switchJobTab('jobs')">Pipeline</button>
+      </div>
+      <!-- Intake tab -->
+      <div id="tab-intake">
+        <div class="notice" style="margin-bottom:16px;">
+          Start a new guest scan from the Welcome screen, or tap "New scan" above.
+        </div>
+        <div id="pending-count" class="mono" style="margin-bottom:8px;"></div>
+        <div id="pending-list"></div>
+      </div>
+      <!-- Jobs tab -->
+      <div id="tab-jobs" style="display:none;">
+        <div class="jobs-list" id="jobs-list">
+          <div class="empty-state">No jobs yet</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="resetAll()">← New scan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 8: Delivery complete ───────────────────────────────────── -->
+  <div id="screen-done" class="screen">
+    <div class="screen-inner" style="text-align:center;">
+      <div class="done-icon">✓</div>
+      <h2 style="margin-bottom:8px;">Scan delivered!</h2>
+      <p style="margin-bottom:24px;">Your 3D is on its way to your inbox.</p>
+      <div class="card" style="text-align:left;margin-bottom:20px;">
+        <div class="mono" style="margin-bottom:8px;color:var(--text-dim);">Delivered to</div>
+        <div style="font-weight:600;font-size:1rem;" id="done-name">—</div>
+        <div style="font-size:0.85rem;color:var(--text-muted);" id="done-email">—</div>
+        <div class="divider"></div>
+        <div class="steps-list" id="done-steps" style="gap:6px;"></div>
+      </div>
+      <div id="done-gallery" style="display:none;margin-bottom:20px;">
+        <a id="done-gallery-link" class="btn btn-secondary" style="display:inline-flex;width:auto;padding:12px 24px;" target="_blank" rel="noopener noreferrer">View in gallery ↗</a>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-dim);" id="done-countdown">Returning to start in 30s…</p>
+      <div class="countdown-bar"><div class="countdown-bar-fill" id="done-bar"></div></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="resetAll()">Start over now</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ── Diagnostics panel ──────────────────────────────────────────────── -->
+<div id="diag-panel">
+  <div class="diag-box">
+    <h3>Diagnostics</h3>
+    <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">Server URL</label>
+    <input type="text" id="diag-url" value="http://localhost:8000" oninput="saveServerUrl()">
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="diagPing()">Ping</button>
+      <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="clearPending()">Clear queue</button>
+    </div>
+    <div class="ping-result" id="diag-ping">—</div>
+    <div class="diag-row">
+      <span>Active jobs</span><span id="diag-active-jobs" class="mono">—</span>
+    </div>
+    <div class="diag-row">
+      <span>Pending (offline)</span><span id="diag-pending" class="mono">—</span>
+    </div>
+    <div class="diag-row" style="margin-top:4px;">
+      <span>Debug mode</span>
+      <button class="dbtn" id="diag-debug-btn" onclick="toggleDebugMode()" style="font-family:var(--mono);font-size:0.75rem;">OFF</button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="closeDiag()">Close</button>
+  </div>
+</div>
+
+<!-- ── Debug bar ──────────────────────────────────────────────────────── -->
+<div id="debug-bar">
+  <div class="debug-row">
+    <span class="debug-label">SCREEN</span>
+    <button class="dbtn" onclick="dbGoto('welcome')">0·Welcome</button>
+    <button class="dbtn" onclick="dbGoto('subject')">1·Subject</button>
+    <button class="dbtn" onclick="dbGoto('social')">2·Social</button>
+    <button class="dbtn" onclick="dbGoto('booth')">3·Booth</button>
+    <button class="dbtn" onclick="dbGoto('format')">4·Format</button>
+    <button class="dbtn" onclick="dbGoto('confirm')">5·Confirm</button>
+    <button class="dbtn" onclick="dbGoto('capture')">6·Capture</button>
+    <button class="dbtn" onclick="dbGoto('jobs')">7·Jobs</button>
+    <button class="dbtn" onclick="dbGoto('done')">8·Done</button>
+  </div>
+  <div class="debug-row">
+    <span class="debug-label">ACTIONS</span>
+    <button class="dbtn teal" onclick="dbFill()">Fill data</button>
+    <button class="dbtn teal" onclick="dbSimJob(1)">Sim Rig A</button>
+    <button class="dbtn teal" onclick="dbSimJob(2)">Sim Rig B</button>
+    <button class="dbtn" onclick="dbSimFail()">Sim fail</button>
+    <button class="dbtn" onclick="dbSimOffline()">Sim offline</button>
+    <button class="dbtn" onclick="resetAll()">Reset</button>
+    <span id="debug-sim-status" style="color:var(--amber);margin-left:4px;"></span>
+  </div>
+  <div id="debug-state"></div>
+</div>
+
+<!-- ── Toast ──────────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ── Offline banner ─────────────────────────────────────────────────── -->
+<div id="offline-banner">Offline — submissions will sync when connection returns</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────────────
+   State
+───────────────────────────────────────────────────────────────────────── */
+const state = {
+  guest:       { fname:'', lname:'', email:'', org:'', social:{} },
+  rig:         null,    // 1 or 2
+  format:      'splat', // splat | mesh | both
+  print3d:     false,
+  sessionId:   null,
+  jobId:       null,
+  pollTimer:   null,
+  doneTimer:   null,
+  doneBarTimeout: null, // the 50ms rAF timeout for bar animation
+  logoTaps:    0,
+  logoTapTimer:null,
+  currentScreen: 'welcome',
+  syncInFlight: false,  // guard against concurrent syncOfflineQueue calls
+};
+
+const STEPS_TOTAL = 5; // progress dot denominator
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Server URL (stored in localStorage)
+───────────────────────────────────────────────────────────────────────── */
+function serverUrl() {
+  return localStorage.getItem('serverUrl') || window.location.origin || 'http://localhost:8000';
+}
+function saveServerUrl() {
+  const v = document.getElementById('diag-url').value.trim();
+  if (v) localStorage.setItem('serverUrl', v);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Session ID
+───────────────────────────────────────────────────────────────────────── */
+function newSessionId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Screen navigation
+───────────────────────────────────────────────────────────────────────── */
+function goto(screenName) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screenName).classList.add('active');
+  state.currentScreen = screenName;
+  if (screenName === 'jobs') refreshJobs();
+  updateProgressDots();
+}
+
+function updateProgressDots() {
+  const map = {
+    'subject': [1, 5], 'social': [2, 5], 'booth': [3, 5],
+    'format': [4, 5], 'confirm': [5, 5],
+  };
+  Object.keys(map).forEach(name => {
+    const el = document.getElementById('dots-' + name);
+    if (!el) return;
+    const [cur, total] = map[name];
+    el.innerHTML = Array.from({length: total}, (_, i) => {
+      let cls = i + 1 < cur ? 'done' : i + 1 === cur ? 'active' : '';
+      return `<span class="${cls}"></span>`;
+    }).join('');
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Screen 1: Subject
+───────────────────────────────────────────────────────────────────────── */
+function submitSubject() {
+  const fname = document.getElementById('inp-fname').value.trim();
+  const lname  = document.getElementById('inp-lname').value.trim();
+  const email  = document.getElementById('inp-email').value.trim();
+  let ok = true;
+
+  const setErr = (fieldId, hasErr) => {
+    document.getElementById(fieldId).classList.toggle('has-error', hasErr);
+    document.getElementById(fieldId).querySelector('input').classList.toggle('error', hasErr);
+  };
+
+  setErr('f-fname', !fname); if (!fname) ok = false;
+  setErr('f-lname', !lname); if (!lname) ok = false;
+  setErr('f-email', !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ok = false;
+
+  if (!ok) return;
+  state.guest.fname = fname;
+  state.guest.lname  = lname;
+  state.guest.email  = email;
+  state.guest.org    = document.getElementById('inp-org').value.trim();
+  goto('social');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Screen 2: Social
+───────────────────────────────────────────────────────────────────────── */
+function submitSocial() {
+  const cleanHandle = v => v.trim().replace(/^@/, '');
+  state.guest.social = {
+    instagram: cleanHandle(document.getElementById('inp-instagram').value),
+    twitter:   cleanHandle(document.getElementById('inp-twitter').value),
+    linkedin:  document.getElementById('inp-linkedin').value.trim(),
+    tiktok:    cleanHandle(document.getElementById('inp-tiktok').value),
+  };
+  // Remove empty entries
+  Object.keys(state.guest.social).forEach(k => {
+    if (!state.guest.social[k]) delete state.guest.social[k];
+  });
+  goto('booth');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Screen 3: Booth
+───────────────────────────────────────────────────────────────────────── */
+function selectBooth(rig) {
+  state.rig = rig;
+  document.getElementById('card-booth-a').className = 'card card-selectable' + (rig === 1 ? ' selected-teal' : '');
+  document.getElementById('card-booth-b').className = 'card card-selectable' + (rig === 2 ? ' selected-purple' : '');
+  document.getElementById('btn-booth-continue').disabled = false;
+}
+
+function submitBooth() {
+  if (!state.rig) return;
+  // Update format screen for selected rig
+  const isRig2 = state.rig === 2;
+  document.getElementById('format-rig1-notice').style.display = isRig2 ? 'none' : 'block';
+  document.getElementById('format-rig2-options').style.display = isRig2 ? 'block' : 'none';
+  goto('format');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Screen 4: Format
+───────────────────────────────────────────────────────────────────────── */
+function setFormat(fmt) {
+  state.format = fmt;
+  ['splat','mesh','both'].forEach(f => {
+    document.getElementById('fmt-' + f).classList.toggle('active', f === fmt);
+  });
+}
+
+function toggle3DPrint() {
+  state.print3d = !state.print3d;
+  document.getElementById('print-check').classList.toggle('checked', state.print3d);
+}
+
+function submitFormat() {
+  populateConfirm();
+  goto('confirm');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Screen 5: Confirmation
+───────────────────────────────────────────────────────────────────────── */
+function populateConfirm() {
+  const g = state.guest;
+  document.getElementById('cf-name').textContent  = `${g.fname} ${g.lname}`;
+  document.getElementById('cf-email').textContent = g.email;
+
+  const orgRow = document.getElementById('cf-org-row');
+  if (g.org) {
+    orgRow.style.display = 'flex';
+    document.getElementById('cf-org').textContent = g.org;
+  } else {
+    orgRow.style.display = 'none';
+  }
+
+  const socSection = document.getElementById('cf-social-section');
+  const socialEntries = Object.entries(g.social || {});
+  if (socialEntries.length) {
+    socSection.style.display = 'block';
+    document.getElementById('cf-socials').innerHTML = socialEntries.map(([k, v]) => {
+      // LinkedIn is a URL, not a handle — don't add @
+      const display = k === 'linkedin' ? v : `@${v}`;
+      return `<div class="confirm-row"><span class="confirm-row-key">${k}</span><span class="confirm-row-val">${esc(display)}</span></div>`;
+    }).join('');
+  } else {
+    socSection.style.display = 'none';
+  }
+
+  const boothLabels = {1: 'Booth A — Human Rig', 2: 'Booth B — Turntable'};
+  document.getElementById('cf-booth').textContent = boothLabels[state.rig] || '—';
+
+  const fmtRow = document.getElementById('cf-format-row');
+  const printRow = document.getElementById('cf-print-row');
+  if (state.rig === 2) {
+    fmtRow.style.display = 'flex';
+    document.getElementById('cf-format').textContent = {splat:'Splat only',mesh:'Mesh only',both:'Splat + Mesh'}[state.format];
+    printRow.style.display = state.print3d ? 'flex' : 'none';
+  } else {
+    fmtRow.style.display = 'flex';
+    document.getElementById('cf-format').textContent = 'Gaussian splat (.splat)';
+    printRow.style.display = 'none';
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Screen 6: Capture — Start scan
+───────────────────────────────────────────────────────────────────────── */
+async function startScan() {
+  const btn = document.getElementById('btn-start-scan');
+  btn.disabled = true;
+  btn.textContent = 'Registering…';
+
+  state.sessionId = newSessionId();
+  const payload = {
+    session_id: state.sessionId,
+    rig: state.rig,
+    guest: {
+      name:   `${state.guest.fname} ${state.guest.lname}`,
+      email:  state.guest.email,
+      org:    state.guest.org || undefined,
+      social: Object.keys(state.guest.social).length ? state.guest.social : undefined,
+    },
+    format:  state.rig === 2 ? state.format : 'splat',
+    print3d: state.rig === 2 ? state.print3d : false,
+  };
+
+  goto('capture');
+  renderCaptureSteps([]);
+  document.getElementById('capture-retry-row').style.display = 'none';
+
+  try {
+    const resp = await fetch(serverUrl() + '/api/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      state.jobId = data.job_id;
+      startPolling();
+      // Button stays disabled — user is now on capture screen, not confirm
+      return;
+    } else {
+      showCaptureError(data.error || 'Server error');
+    }
+  } catch (err) {
+    // Offline fallback
+    saveOffline(payload);
+    showToast('Saved — will sync when back online');
+    document.getElementById('capture-headline').textContent = 'Saved offline';
+    document.getElementById('capture-sub').textContent = 'Your scan will start when the connection returns.';
+  }
+
+  // Only re-enable button if we're staying on/returning to confirm (error paths)
+  btn.disabled = false;
+  btn.textContent = 'Start Scan →';
+}
+
+function showCaptureError(msg) {
+  document.getElementById('capture-headline').textContent = 'Something went wrong';
+  document.getElementById('capture-sub').textContent = msg;
+  document.getElementById('capture-retry-row').style.display = 'block';
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Pipeline step rendering
+───────────────────────────────────────────────────────────────────────── */
+const STEP_ICONS = {
+  waiting: '○', running: '●', done: '✓', failed: '✕', skipped: '–',
+};
+
+function renderCaptureSteps(steps) {
+  const el = document.getElementById('capture-steps');
+  if (!steps || steps.length === 0) {
+    el.innerHTML = '<p style="text-align:center;color:var(--text-dim);font-size:0.9rem;">Waiting for pipeline to start…</p>';
+    return;
+  }
+  el.innerHTML = steps.map((s, i) => `
+    <div class="step-row ${s.status}" id="cstep-${i}">
+      <div class="step-icon ${s.status}">${s.status === 'done' ? '✓' : s.status === 'failed' ? '✕' : i + 1}</div>
+      <div class="step-label ${s.status}">${s.label}</div>
+    </div>
+  `).join('');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Polling
+───────────────────────────────────────────────────────────────────────── */
+function startPolling() {
+  stopPolling();
+  pollJob();
+  state.pollTimer = setInterval(pollJob, 2000);
+}
+
+function stopPolling() {
+  if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
+}
+
+async function pollJob() {
+  if (!state.jobId) return;
+  // Snapshot jobId so we can detect if resetAll() was called while fetch was in-flight
+  const jobIdAtDispatch = state.jobId;
+  try {
+    const resp = await fetch(serverUrl() + '/api/jobs/' + jobIdAtDispatch);
+    const data = await resp.json();
+    // If state was reset while we were awaiting, discard this result
+    if (state.jobId !== jobIdAtDispatch) return;
+    if (!data.ok) return;
+    const job = data.job;
+    renderCaptureSteps(job.steps);
+
+    const running = job.steps.find(s => s.status === 'running');
+    if (running) {
+      document.getElementById('capture-headline').textContent = running.label + '…';
+    }
+
+    if (job.status === 'completed') {
+      stopPolling();
+      transitionToDone(job);
+    } else if (job.status === 'failed') {
+      stopPolling();
+      document.getElementById('capture-headline').textContent = 'Pipeline failed';
+      document.getElementById('capture-sub').textContent = job.error || 'Contact a staff member.';
+      document.getElementById('capture-retry-row').style.display = 'block';
+    }
+  } catch (_) { /* network blip, keep polling */ }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Screen 8: Delivery complete
+───────────────────────────────────────────────────────────────────────── */
+function transitionToDone(job) {
+  document.getElementById('done-name').textContent  = `${state.guest.fname} ${state.guest.lname}`;
+  document.getElementById('done-email').textContent = state.guest.email;
+
+  // Render final steps
+  const stepsEl = document.getElementById('done-steps');
+  stepsEl.innerHTML = (job.steps || []).map((s, i) => `
+    <div class="step-row done">
+      <div class="step-icon done">✓</div>
+      <div class="step-label done">${s.label}</div>
+    </div>
+  `).join('');
+
+  // Gallery link
+  if (job.outputs && job.outputs.gallery_url) {
+    const link = document.getElementById('done-gallery-link');
+    link.href = job.outputs.gallery_url;
+    document.getElementById('done-gallery').style.display = 'block';
+  } else {
+    document.getElementById('done-gallery').style.display = 'none';
+  }
+
+  goto('done');
+  startDoneCountdown();
+}
+
+function startDoneCountdown() {
+  if (state.doneTimer) { clearInterval(state.doneTimer); state.doneTimer = null; }
+  if (state.doneBarTimeout) { clearTimeout(state.doneBarTimeout); state.doneBarTimeout = null; }
+  let remaining = 30;
+  const bar = document.getElementById('done-bar');
+  const countEl = document.getElementById('done-countdown');
+  bar.style.width = '100%';
+  bar.style.transition = 'none';
+
+  state.doneBarTimeout = setTimeout(() => {
+    state.doneBarTimeout = null;
+    bar.style.transition = 'width 30s linear';
+    bar.style.width = '0%';
+  }, 50);
+
+  state.doneTimer = setInterval(() => {
+    remaining--;
+    countEl.textContent = `Returning to start in ${remaining}s…`;
+    if (remaining <= 0) {
+      clearInterval(state.doneTimer);
+      state.doneTimer = null;
+      resetAll();
+    }
+  }, 1000);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Jobs view
+───────────────────────────────────────────────────────────────────────── */
+let jobsTab = 'intake';
+function switchJobTab(tab) {
+  jobsTab = tab;
+  document.getElementById('tab-intake').style.display = tab === 'intake' ? 'block' : 'none';
+  document.getElementById('tab-jobs').style.display   = tab === 'jobs'   ? 'block' : 'none';
+  document.getElementById('tab-intake-btn').classList.toggle('active', tab === 'intake');
+  document.getElementById('tab-jobs-btn').classList.toggle('active', tab === 'jobs');
+  if (tab === 'jobs') fetchAndRenderJobs();
+  if (tab === 'intake') renderPendingList();
+}
+
+async function refreshJobs() {
+  renderPendingList();
+  if (jobsTab === 'jobs') fetchAndRenderJobs();
+}
+
+async function fetchAndRenderJobs() {
+  const el = document.getElementById('jobs-list');
+  try {
+    const resp = await fetch(serverUrl() + '/api/jobs');
+    const data = await resp.json();
+    if (!data.ok || !data.jobs.length) {
+      el.innerHTML = '<div class="empty-state">No jobs yet</div>';
+      return;
+    }
+    el.innerHTML = data.jobs.map(job => renderJobCard(job)).join('');
+  } catch (_) {
+    el.innerHTML = '<div class="empty-state" style="color:var(--text-dim);">Could not reach server</div>';
+  }
+}
+
+function renderJobCard(job) {
+  const statusClass = job.status;
+  const stepsHtml = (job.steps || []).map(s =>
+    `<div class="step-pip ${s.status}"></div>`
+  ).join('');
+
+  // Ensure timezone suffix so Safari parses ISO 8601 correctly
+  const tsStr = job.created_at.endsWith('Z') || job.created_at.includes('+') ? job.created_at : job.created_at + 'Z';
+  const tsDate = new Date(tsStr);
+  const ts = isNaN(tsDate) ? '—' : tsDate.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const boothLabel = job.rig === 1 ? 'Booth A' : 'Booth B';
+
+  return `
+    <div class="job-card">
+      <div class="job-card-header">
+        <div>
+          <div class="job-card-name">${esc(job.guest_name || '—')}</div>
+          <div class="job-card-meta">${boothLabel} · ${ts} · #${esc(job.job_id)}</div>
+        </div>
+        <div class="job-status-pill ${statusClass}">${job.status}</div>
+      </div>
+      <div class="step-progress">${stepsHtml}</div>
+      ${job.error ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--red);">${esc(job.error)}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderPendingList() {
+  const pending = getPendingSubmissions();
+  const el = document.getElementById('pending-count');
+  const listEl = document.getElementById('pending-list');
+  el.textContent = `${pending.length} pending submission${pending.length === 1 ? '' : 's'}`;
+  if (!pending.length) {
+    listEl.innerHTML = '<div class="empty-state" style="font-size:0.85rem;">No offline queue</div>';
+    return;
+  }
+  listEl.innerHTML = pending.map(p => `
+    <div class="card" style="margin-bottom:8px;font-size:0.85rem;">
+      <div style="font-weight:600;">${esc(p.guest?.name || '—')}</div>
+      <div style="color:var(--text-muted);">${esc(p.guest?.email || '')} · Rig ${p.rig}</div>
+      <div class="mono" style="margin-top:4px;font-size:0.7rem;">${esc(p.session_id)}</div>
+    </div>
+  `).join('');
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Offline queue
+───────────────────────────────────────────────────────────────────────── */
+function getPendingSubmissions() {
+  try { return JSON.parse(localStorage.getItem('pending_submissions') || '[]'); } catch { return []; }
+}
+
+function saveOffline(payload) {
+  const q = getPendingSubmissions();
+  q.push(payload);
+  localStorage.setItem('pending_submissions', JSON.stringify(q));
+}
+
+async function syncOfflineQueue() {
+  if (state.syncInFlight) return;
+  const q = getPendingSubmissions();
+  if (!q.length) return;
+  state.syncInFlight = true;
+  try {
+    const resp = await fetch(serverUrl() + '/api/sync', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({submissions: q}),
+    });
+    const data = await resp.json();
+    if (data.ok && data.results) {
+      // Only remove submissions that individually succeeded
+      const failedIds = new Set(
+        data.results.filter(r => !r.ok).map(r => r.session_id)
+      );
+      const remaining = q.filter(s => failedIds.has(s.session_id));
+      if (remaining.length) {
+        localStorage.setItem('pending_submissions', JSON.stringify(remaining));
+      } else {
+        localStorage.removeItem('pending_submissions');
+      }
+      const synced = q.length - remaining.length;
+      if (synced > 0) showToast(`Synced ${synced} offline submission${synced > 1 ? 's' : ''}`);
+    }
+  } catch (_) { /* still offline */ }
+  finally { state.syncInFlight = false; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Diagnostics panel
+───────────────────────────────────────────────────────────────────────── */
+function openDiag() {
+  document.getElementById('diag-url').value = serverUrl();
+  const q = getPendingSubmissions();
+  document.getElementById('diag-pending').textContent = q.length;
+  document.getElementById('diag-active-jobs').textContent = '…';
+  document.getElementById('diag-panel').classList.add('open');
+  fetchDiagStatus();
+}
+
+async function fetchDiagStatus() {
+  try {
+    const resp = await fetch(serverUrl() + '/api/status');
+    const data = await resp.json();
+    document.getElementById('diag-active-jobs').textContent = data.active_jobs ?? '—';
+  } catch (_) {
+    document.getElementById('diag-active-jobs').textContent = 'unreachable';
+  }
+}
+
+async function diagPing() {
+  const el = document.getElementById('diag-ping');
+  el.textContent = 'Pinging…';
+  const t0 = Date.now();
+  try {
+    const resp = await fetch(serverUrl() + '/api/status');
+    const data = await resp.json();
+    const ms = Date.now() - t0;
+    el.textContent = `OK · ${ms}ms · rig=${data.rig} · ${data.rig_label} · jobs=${data.active_jobs}`;
+    el.style.color = 'var(--teal)';
+  } catch (e) {
+    el.textContent = 'Failed: ' + e.message;
+    el.style.color = 'var(--red)';
+  }
+}
+
+function clearPending() {
+  localStorage.removeItem('pending_submissions');
+  document.getElementById('diag-pending').textContent = '0';
+  showToast('Pending queue cleared');
+}
+
+function closeDiag() {
+  document.getElementById('diag-panel').classList.remove('open');
+}
+
+function toggleDebugMode() {
+  const bar = document.getElementById('debug-bar');
+  const btn = document.getElementById('diag-debug-btn');
+  const on  = bar.classList.toggle('visible');
+  btn.textContent = on ? 'ON' : 'OFF';
+  btn.classList.toggle('active', on);
+  if (on) { setInterval(dbUpdateState, 500); dbUpdateState(); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   3-tap logo → diagnostics
+───────────────────────────────────────────────────────────────────────── */
+document.getElementById('logo-tap-target').addEventListener('click', () => {
+  state.logoTaps++;
+  if (state.logoTapTimer) clearTimeout(state.logoTapTimer);
+  state.logoTapTimer = setTimeout(() => { state.logoTaps = 0; }, 1000);
+  if (state.logoTaps >= 3) {
+    state.logoTaps = 0;
+    openDiag();
+  }
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Toast
+───────────────────────────────────────────────────────────────────────── */
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Online/offline detection
+───────────────────────────────────────────────────────────────────────── */
+function updateOnlineStatus() {
+  const offline = !navigator.onLine;
+  document.getElementById('offline-banner').classList.toggle('show', offline);
+  if (!offline) syncOfflineQueue();
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Reset
+───────────────────────────────────────────────────────────────────────── */
+function resetAll() {
+  stopPolling();
+  if (state.doneTimer) { clearInterval(state.doneTimer); state.doneTimer = null; }
+  if (state.doneBarTimeout) { clearTimeout(state.doneBarTimeout); state.doneBarTimeout = null; }
+
+  // Clear guest data
+  state.guest   = { fname:'', lname:'', email:'', org:'', social:{} };
+  state.rig     = null;
+  state.format  = 'splat';
+  state.print3d = false;
+  state.sessionId = null;
+  state.jobId   = null;
+
+  // Clear input fields
+  ['inp-fname','inp-lname','inp-email','inp-org',
+   'inp-instagram','inp-twitter','inp-linkedin','inp-tiktok'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['f-fname','f-lname','f-email'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('has-error');
+  });
+
+  // Reset format toggles
+  setFormat('splat');
+  state.print3d = false;
+  document.getElementById('print-check').classList.remove('checked');
+
+  // Reset booth selection
+  document.getElementById('card-booth-a').className = 'card card-selectable';
+  document.getElementById('card-booth-b').className = 'card card-selectable';
+  document.getElementById('btn-booth-continue').disabled = true;
+
+  // Reset capture screen
+  document.getElementById('capture-headline').textContent = 'Processing…';
+  document.getElementById('capture-sub').textContent = 'Your scan is in the pipeline.';
+
+  goto('welcome');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Debug mode
+   Activate:  http://localhost:8000/?debug=1
+   Also toggleable from the diagnostics panel (3-tap logo)
+───────────────────────────────────────────────────────────────────────── */
+const DEBUG = new URLSearchParams(location.search).has('debug');
+let _dbSimTimer = null;
+
+function dbInit() {
+  if (!DEBUG) return;
+  document.getElementById('debug-bar').classList.add('visible');
+  setInterval(dbUpdateState, 500);
+  dbUpdateState();
+}
+
+function dbUpdateState() {
+  const s = state;
+  document.getElementById('debug-state').textContent =
+    `screen:${s.currentScreen}  rig:${s.rig}  fmt:${s.format}  job:${s.jobId || '—'}  ` +
+    `guest:"${s.guest.fname} ${s.guest.lname}"  poll:${s.pollTimer ? 'running' : 'off'}`;
+  // Highlight active screen button
+  document.querySelectorAll('#debug-bar .dbtn').forEach(b => {
+    const match = b.textContent.includes(s.currentScreen);
+    if (b.onclick?.toString().includes('dbGoto')) b.classList.toggle('active', match);
+  });
+}
+
+// Jump to any screen with state pre-loaded so it renders correctly
+function dbGoto(screen) {
+  // Ensure enough state exists for the target screen to render
+  if (!state.guest.fname) dbFillState();
+  if (!state.rig) { state.rig = 1; }
+
+  if (screen === 'format') {
+    document.getElementById('format-rig1-notice').style.display = state.rig === 2 ? 'none' : 'block';
+    document.getElementById('format-rig2-options').style.display = state.rig === 2 ? 'block' : 'none';
+  }
+  if (screen === 'confirm') populateConfirm();
+  if (screen === 'capture') {
+    document.getElementById('capture-headline').textContent = 'Processing…';
+    document.getElementById('capture-sub').textContent = 'Your scan is in the pipeline.';
+    document.getElementById('capture-retry-row').style.display = 'none';
+    renderCaptureSteps([]);
+  }
+  if (screen === 'done') {
+    document.getElementById('done-name').textContent  = `${state.guest.fname} ${state.guest.lname}`;
+    document.getElementById('done-email').textContent = state.guest.email;
+    document.getElementById('done-gallery').style.display = 'none';
+    document.getElementById('done-steps').innerHTML = '';
+    document.getElementById('done-countdown').textContent = 'Debug mode — no auto-return';
+    document.getElementById('done-bar').style.width = '100%';
+  }
+  if (screen === 'jobs') refreshJobs();
+  goto(screen);
+}
+
+// Fill all form fields with Ada Lovelace test data
+function dbFill() {
+  dbFillState();
+  document.getElementById('inp-fname').value     = 'Ada';
+  document.getElementById('inp-lname').value     = 'Lovelace';
+  document.getElementById('inp-email').value     = 'ada@lab.io';
+  document.getElementById('inp-org').value       = 'Analytical Engine Co.';
+  document.getElementById('inp-instagram').value = '@ada_lovelace';
+  document.getElementById('inp-twitter').value   = '@adalovelace';
+  document.getElementById('inp-linkedin').value  = 'linkedin.com/in/adalovelace';
+  document.getElementById('inp-tiktok').value    = '@ada_codes';
+  showToast('Test data filled');
+}
+
+function dbFillState() {
+  state.guest = {
+    fname: 'Ada', lname: 'Lovelace',
+    email: 'ada@lab.io', org: 'Analytical Engine Co.',
+    social: { instagram: 'ada_lovelace', twitter: 'adalovelace',
+              linkedin: 'linkedin.com/in/adalovelace', tiktok: 'ada_codes' },
+  };
+}
+
+// Simulate a complete pipeline run for the given rig
+function dbSimJob(rig) {
+  if (_dbSimTimer) { clearInterval(_dbSimTimer); _dbSimTimer = null; }
+  if (!state.guest.fname) dbFillState();
+  state.rig    = rig;
+  state.format = rig === 2 ? 'both' : 'splat';
+  state.print3d = rig === 2;
+
+  const steps = rig === 1
+    ? ['images_received','colmap_align','lichtfeld_splat','splat_trim','splat_compress','email_delivery']
+    : ['images_received','colmap_align','autorc_mesh','lichtfeld_splat','splat_trim','splat_compress','prusa_handoff','email_delivery'];
+
+  const labels = {
+    images_received: 'Images received',  colmap_align: 'COLMAP alignment',
+    lichtfeld_splat: 'Gaussian splat',   splat_trim: 'Trim bounding region',
+    splat_compress:  'Compress splat',   email_delivery: 'Email guest',
+    autorc_mesh:     'Mesh reconstruction', prusa_handoff: 'Send to Prusa',
+  };
+
+  // Build initial mock job
+  state.jobId = 'dbg-' + Date.now().toString(36);
+  const mockJob = {
+    job_id: state.jobId, rig, guest_name: 'Ada Lovelace',
+    status: 'running', created_at: new Date().toISOString(),
+    error: null, outputs: {},
+    steps: steps.map(id => ({ id, label: labels[id], status: 'waiting' })),
+  };
+
+  // Store in mock registry
+  _dbMockJobs[state.jobId] = mockJob;
+
+  goto('capture');
+  renderCaptureSteps(mockJob.steps);
+  document.getElementById('capture-headline').textContent = 'Waiting for pipeline…';
+  document.getElementById('capture-retry-row').style.display = 'none';
+
+  let stepIdx = 0;
+  const stepMs = [3000, 8000, 12000, 4000, 5000, 2000, 2000, 2000]; // approx durations
+  const simStatusEl = document.getElementById('debug-sim-status');
+
+  function advanceStep() {
+    // Mark current step done
+    if (stepIdx > 0) mockJob.steps[stepIdx - 1].status = 'done';
+    if (stepIdx >= steps.length) {
+      // All done
+      mockJob.status = 'completed';
+      mockJob.outputs = { viewer_html: '#', gallery_url: 'https://supersplat.playcanvas.com' };
+      simStatusEl.textContent = '';
+      stopPolling();
+      transitionToDone(mockJob);
+      return;
+    }
+    mockJob.steps[stepIdx].status = 'running';
+    document.getElementById('capture-headline').textContent = labels[steps[stepIdx]] + '…';
+    renderCaptureSteps(mockJob.steps);
+    simStatusEl.textContent = `[SIM ${stepIdx + 1}/${steps.length}]`;
+    _dbSimTimer = setTimeout(advanceStep, stepMs[stepIdx] ?? 3000);
+    stepIdx++;
+  }
+
+  setTimeout(advanceStep, 1000);
+}
+
+// Simulate a pipeline failure on step 2
+function dbSimFail() {
+  if (_dbSimTimer) { clearTimeout(_dbSimTimer); _dbSimTimer = null; }
+  if (!state.guest.fname) dbFillState();
+  state.rig = 1;
+  state.jobId = 'dbg-fail-' + Date.now().toString(36);
+
+  const steps = [
+    { id: 'images_received', label: 'Images received',  status: 'done' },
+    { id: 'colmap_align',    label: 'COLMAP alignment', status: 'done' },
+    { id: 'lichtfeld_splat', label: 'Gaussian splat',   status: 'failed' },
+    { id: 'splat_trim',      label: 'Trim bounding region', status: 'waiting' },
+    { id: 'splat_compress',  label: 'Compress splat',   status: 'waiting' },
+    { id: 'email_delivery',  label: 'Email guest',      status: 'waiting' },
+  ];
+
+  goto('capture');
+  document.getElementById('capture-headline').textContent = 'Pipeline failed';
+  document.getElementById('capture-sub').textContent = 'LichtFeld: CUDA out of memory. Contact a staff member.';
+  document.getElementById('capture-retry-row').style.display = 'block';
+  renderCaptureSteps(steps);
+  showToast('[Debug] Simulated failure on step 3');
+}
+
+// Simulate going offline and saving a submission to the queue
+function dbSimOffline() {
+  if (!state.guest.fname) dbFillState();
+  const payload = {
+    session_id: newSessionId(),
+    rig: state.rig || 1,
+    guest: { name: `${state.guest.fname} ${state.guest.lname}`, email: state.guest.email },
+  };
+  saveOffline(payload);
+  document.getElementById('offline-banner').classList.add('show');
+  showToast('[Debug] Saved 1 offline submission');
+  if (state.currentScreen === 'jobs') renderPendingList();
+}
+
+// Mock job store — dbSimJob populates this, pollJob reads it in debug mode
+const _dbMockJobs = {};
+
+// Patch pollJob to use mock store in debug mode
+const _realFetch = window.fetch.bind(window);
+window.fetch = function(url, opts) {
+  if (!DEBUG) return _realFetch(url, opts);
+  const u = String(url);
+
+  // Mock GET /api/jobs/<id>
+  const jobMatch = u.match(/\/api\/jobs\/([^/?]+)$/);
+  if (jobMatch && (!opts || !opts.method || opts.method === 'GET')) {
+    const job = _dbMockJobs[jobMatch[1]];
+    if (job) return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, job }) });
+  }
+
+  // Mock GET /api/jobs
+  if (u.endsWith('/api/jobs') && (!opts || !opts.method || opts.method === 'GET')) {
+    const jobs = Object.values(_dbMockJobs);
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, jobs }) });
+  }
+
+  // Mock POST /api/register
+  if (u.endsWith('/api/register') && opts?.method === 'POST') {
+    const body = JSON.parse(opts.body);
+    const jobId = 'dbg-' + Date.now().toString(36);
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, job_id: jobId, session_id: body.session_id, queue_position: 0 }) });
+  }
+
+  // Mock GET /api/status
+  if (u.endsWith('/api/status')) {
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, rig: 1, rig_label: 'Human Splat [DEBUG]', station_id: 'PC1', active_jobs: Object.keys(_dbMockJobs).length }) });
+  }
+
+  return _realFetch(url, opts);
+};
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Init
+───────────────────────────────────────────────────────────────────────── */
+updateProgressDots();
+syncOfflineQueue();
+dbInit();
+</script>
+</body>
+</html>

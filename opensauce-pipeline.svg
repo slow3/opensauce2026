@@ -1,0 +1,315 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="2150" viewBox="0 0 2200 2150" font-family="'Segoe UI', system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#94a3b8"/>
+    </marker>
+    <filter id="sh" x="-4%" y="-4%" width="108%" height="108%">
+      <feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- ░░ BACKGROUND ░░ -->
+  <rect width="2200" height="2150" fill="#f8fafc"/>
+
+  <!-- ░░ HEADER BAND ░░ -->
+  <rect x="0" y="0" width="2200" height="96" fill="#0f172a"/>
+  <text x="1100" y="44" text-anchor="middle" font-size="26" font-weight="700" fill="white" letter-spacing="0.5">OPEN SAUCE 2026 — SCANNING PIPELINE</text>
+  <text x="1100" y="74" text-anchor="middle" font-size="14" fill="#94a3b8" letter-spacing="0.3">Hard Deadline: July 14 · Live: July 18 · 83 days from today</text>
+
+  <!-- ░░ LEGEND ░░ -->
+  <rect x="1680" y="10" width="500" height="76" rx="6" fill="#1e293b"/>
+  <rect x="1700" y="26" width="12" height="12" rx="2" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="1720" y="37" font-size="12" fill="#94a3b8">Already exists</text>
+  <rect x="1820" y="26" width="12" height="12" rx="2" fill="#fef9c3" stroke="#d97706" stroke-width="1.5"/>
+  <text x="1840" y="37" font-size="12" fill="#94a3b8">Needs configuring</text>
+  <rect x="1700" y="54" width="12" height="12" rx="2" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="1720" y="65" font-size="12" fill="#94a3b8">Needs building</text>
+  <rect x="1820" y="54" width="12" height="12" rx="2" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+  <text x="1840" y="65" font-size="12" fill="#94a3b8">Cloud / external</text>
+
+  <!-- ░░ iPAD WEB APP ░░ -->
+  <rect x="500" y="116" width="1200" height="88" rx="10" fill="#faf5ff" stroke="#9333ea" stroke-width="2" filter="url(#sh)"/>
+  <text x="1100" y="148" text-anchor="middle" font-size="16" font-weight="700" fill="#581c87">iPad Web App — Guest Intake</text>
+  <text x="1100" y="170" text-anchor="middle" font-size="13" fill="#7e22ce">Guest enters name · email · company · selects RIG 1 or RIG 2</text>
+  <rect x="1620" y="122" width="62" height="20" rx="10" fill="#fee2e2"/>
+  <text x="1651" y="136" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">BUILD</text>
+
+  <!-- fork lines from iPad -->
+  <line x1="780" y1="204" x2="560" y2="288" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arr)"/>
+  <line x1="1420" y1="204" x2="1640" y2="288" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arr)"/>
+
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <!-- RIG 1 COLUMN                    -->
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <rect x="60" y="288" width="1000" height="44" rx="8" fill="#1e293b"/>
+  <text x="560" y="316" text-anchor="middle" font-size="15" font-weight="700" fill="white" letter-spacing="0.3">RIG 1 — Gaussian Splat for Humans</text>
+
+  <!-- R1 S1: Cameras triggered -->
+  <rect x="80" y="352" width="960" height="72" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="560" y="383" text-anchor="middle" font-size="14" font-weight="600" fill="#14532d">40+ Cameras Triggered</text>
+  <text x="560" y="404" text-anchor="middle" font-size="12" fill="#166534">Manual or automatic NOXON switch · guest strikes pose in volume</text>
+  <rect x="960" y="358" width="62" height="20" rx="10" fill="#dcfce7"/>
+  <text x="991" y="372" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">EXISTS</text>
+  <line x1="560" y1="424" x2="560" y2="452" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R1 S2: Camera2Cloud PC1 -->
+  <rect x="80" y="452" width="960" height="72" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="560" y="483" text-anchor="middle" font-size="14" font-weight="600" fill="#78350f">Camera2Cloud → PC1</text>
+  <text x="560" y="504" text-anchor="middle" font-size="12" fill="#92400e">All images transferred to PC1 via local network</text>
+  <rect x="960" y="458" width="72" height="20" rx="10" fill="#fef9c3"/>
+  <text x="996" y="472" text-anchor="middle" font-size="10" font-weight="600" fill="#d97706">CONFIGURE</text>
+  <line x1="560" y1="524" x2="560" y2="552" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R1 S3: Orchestrator folder -->
+  <rect x="80" y="552" width="960" height="72" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="560" y="583" text-anchor="middle" font-size="14" font-weight="600" fill="#7f1d1d">Orchestrator — Create Guest Folder</text>
+  <text x="560" y="604" text-anchor="middle" font-size="12" fill="#991b1b">Watches Camera2Cloud drop · names folder GUESTNAME_TIMESTAMP</text>
+  <rect x="960" y="558" width="62" height="20" rx="10" fill="#fee2e2"/>
+  <text x="991" y="572" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">BUILD</text>
+  <line x1="560" y1="624" x2="560" y2="652" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R1 S4: COLMAP -->
+  <rect x="80" y="652" width="960" height="72" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="560" y="683" text-anchor="middle" font-size="14" font-weight="600" fill="#14532d">COLMAP — Camera Alignment + Ground Control Points</text>
+  <text x="560" y="704" text-anchor="middle" font-size="12" fill="#166534">Headless via AutoRC · sets scale, orientation, ground plane · one-time calibration</text>
+  <rect x="960" y="658" width="62" height="20" rx="10" fill="#dcfce7"/>
+  <text x="991" y="672" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">EXISTS</text>
+  <line x1="560" y1="724" x2="560" y2="752" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R1 S5: LichtFeld -->
+  <rect x="80" y="752" width="960" height="72" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="560" y="783" text-anchor="middle" font-size="14" font-weight="600" fill="#7f1d1d">LichtFeld Studio — Gaussian Splat Reconstruction</text>
+  <text x="560" y="804" text-anchor="middle" font-size="12" fill="#991b1b">Takes COLMAP output directly · headless Python plugin · C++23/CUDA accelerated</text>
+  <rect x="960" y="758" width="62" height="20" rx="10" fill="#fee2e2"/>
+  <text x="991" y="772" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">BUILD</text>
+  <line x1="560" y1="824" x2="560" y2="852" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R1 S6: rcbox trim -->
+  <rect x="80" y="852" width="960" height="72" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="560" y="883" text-anchor="middle" font-size="14" font-weight="600" fill="#7f1d1d">Splat Trim — .rcbox Bounding Region</text>
+  <text x="560" y="904" text-anchor="middle" font-size="12" fill="#991b1b">Python script converts RC .rcbox → LichtFeld region · crops splat to scan volume</text>
+  <rect x="960" y="858" width="62" height="20" rx="10" fill="#fee2e2"/>
+  <text x="991" y="872" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">BUILD</text>
+  <line x1="560" y1="924" x2="560" y2="952" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R1 S7: SuperSplat -->
+  <rect x="80" y="952" width="960" height="72" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="560" y="983" text-anchor="middle" font-size="14" font-weight="600" fill="#78350f">SuperSplat — Compress + Upload</text>
+  <text x="560" y="1004" text-anchor="middle" font-size="12" fill="#92400e">Open-source compression · uploads to SuperSplat cloud · generates guest link</text>
+  <rect x="960" y="958" width="72" height="20" rx="10" fill="#fef9c3"/>
+  <text x="996" y="972" text-anchor="middle" font-size="10" font-weight="600" fill="#d97706">AUTOMATE</text>
+  <line x1="560" y1="1024" x2="560" y2="1052" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R1 S8: Email -->
+  <rect x="80" y="1052" width="960" height="72" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="560" y="1083" text-anchor="middle" font-size="14" font-weight="600" fill="#7f1d1d">Email Guest — Splat Viewer Link</text>
+  <text x="560" y="1104" text-anchor="middle" font-size="12" fill="#991b1b">Sends SuperSplat link · optional gallery entry on SuperSplat or Arrival.Space</text>
+  <rect x="960" y="1058" width="62" height="20" rx="10" fill="#fee2e2"/>
+  <text x="991" y="1072" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">BUILD</text>
+
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <!-- RIG 2 COLUMN                    -->
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <rect x="1140" y="288" width="1000" height="44" rx="8" fill="#1e293b"/>
+  <text x="1640" y="316" text-anchor="middle" font-size="15" font-weight="700" fill="white" letter-spacing="0.3">RIG 2 — Turntable (Objects → Mesh + Splat + 3D Print)</text>
+
+  <!-- R2 S1: Turntable -->
+  <rect x="1160" y="352" width="960" height="72" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="1640" y="383" text-anchor="middle" font-size="14" font-weight="600" fill="#14532d">Guest Places Object on Turntable</text>
+  <text x="1640" y="404" text-anchor="middle" font-size="12" fill="#166534">8 FujiFilm cameras · turntable rotates 10° × 36 steps = 288 photos total</text>
+  <rect x="2040" y="358" width="62" height="20" rx="10" fill="#dcfce7"/>
+  <text x="2071" y="372" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">EXISTS</text>
+  <line x1="1640" y1="424" x2="1640" y2="452" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R2 S2: Camera2Cloud PC2 -->
+  <rect x="1160" y="452" width="960" height="72" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="1640" y="483" text-anchor="middle" font-size="14" font-weight="600" fill="#78350f">Camera2Cloud → PC2</text>
+  <text x="1640" y="504" text-anchor="middle" font-size="12" fill="#92400e">All 288 images transferred to PC2 via local network</text>
+  <rect x="2040" y="458" width="72" height="20" rx="10" fill="#fef9c3"/>
+  <text x="2076" y="472" text-anchor="middle" font-size="10" font-weight="600" fill="#d97706">CONFIGURE</text>
+  <line x1="1640" y1="524" x2="1640" y2="552" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R2 S3: Orchestrator folder -->
+  <rect x="1160" y="552" width="960" height="72" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="1640" y="583" text-anchor="middle" font-size="14" font-weight="600" fill="#7f1d1d">Orchestrator — Create Project Folder</text>
+  <text x="1640" y="604" text-anchor="middle" font-size="12" fill="#991b1b">Triggered by iPad rig selection · names folder PROJECT_GUESTNAME_TIMESTAMP</text>
+  <rect x="2040" y="558" width="62" height="20" rx="10" fill="#fee2e2"/>
+  <text x="2071" y="572" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">BUILD</text>
+  <line x1="1640" y1="624" x2="1640" y2="652" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R2 S4: COLMAP -->
+  <rect x="1160" y="652" width="960" height="72" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="1640" y="683" text-anchor="middle" font-size="14" font-weight="600" fill="#14532d">COLMAP — Camera Alignment + Ground Control Points</text>
+  <text x="1640" y="704" text-anchor="middle" font-size="12" fill="#166534">Same GCP calibration as RIG 1 · one-time setup · sets shared reconstruction region</text>
+  <rect x="2040" y="658" width="62" height="20" rx="10" fill="#dcfce7"/>
+  <text x="2071" y="672" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">EXISTS</text>
+
+  <!-- FORK label -->
+  <line x1="1640" y1="724" x2="1640" y2="742" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="1640" y1="742" x2="1360" y2="752" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="1640" y1="742" x2="1920" y2="752" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="1420" y="748" text-anchor="middle" font-size="11" fill="#64748b" font-weight="600">MESH PATH</text>
+  <text x="1870" y="748" text-anchor="middle" font-size="11" fill="#64748b" font-weight="600">SPLAT PATH</text>
+
+  <!-- R2 S5a: AutoRC -->
+  <rect x="1160" y="752" width="455" height="72" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="1387" y="782" text-anchor="middle" font-size="13" font-weight="600" fill="#14532d">AutoRC → RealityCapture</text>
+  <text x="1387" y="802" text-anchor="middle" font-size="11" fill="#166534">Full mesh · multi-LOD · OBJ/FBX</text>
+  <rect x="1535" y="758" width="62" height="20" rx="10" fill="#dcfce7"/>
+  <text x="1566" y="772" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">EXISTS</text>
+
+  <!-- R2 S5b: LichtFeld with bbox -->
+  <rect x="1645" y="752" width="475" height="72" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="1882" y="782" text-anchor="middle" font-size="13" font-weight="600" fill="#7f1d1d">LichtFeld + .rcbox Region</text>
+  <text x="1882" y="802" text-anchor="middle" font-size="11" fill="#991b1b">Bounding box from RC · Gaussian Splat</text>
+  <rect x="2040" y="758" width="62" height="20" rx="10" fill="#fee2e2"/>
+  <text x="2071" y="772" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">BUILD</text>
+
+  <line x1="1387" y1="824" x2="1387" y2="852" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="1882" y1="824" x2="1882" y2="852" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R2 S6a: Prusa -->
+  <rect x="1160" y="852" width="455" height="72" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="1387" y="882" text-anchor="middle" font-size="13" font-weight="600" fill="#7f1d1d">Prusa Slicer → 3D Print</text>
+  <text x="1387" y="902" text-anchor="middle" font-size="11" fill="#991b1b">Auto-send mesh · guest keepsake print</text>
+  <rect x="1535" y="858" width="62" height="20" rx="10" fill="#fee2e2"/>
+  <text x="1566" y="872" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">BUILD</text>
+
+  <!-- R2 S6b: SuperSplat -->
+  <rect x="1645" y="852" width="475" height="72" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="1882" y="882" text-anchor="middle" font-size="13" font-weight="600" fill="#78350f">SuperSplat Compression</text>
+  <text x="1882" y="902" text-anchor="middle" font-size="11" fill="#92400e">Compress · upload · generate guest link</text>
+  <rect x="2040" y="858" width="72" height="20" rx="10" fill="#fef9c3"/>
+  <text x="2076" y="872" text-anchor="middle" font-size="10" font-weight="600" fill="#d97706">AUTOMATE</text>
+
+  <!-- merge back -->
+  <line x1="1387" y1="924" x2="1387" y2="942" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="1882" y1="924" x2="1882" y2="942" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="1387" y1="942" x2="1640" y2="942" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="1882" y1="942" x2="1640" y2="942" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="1640" y1="942" x2="1640" y2="952" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- R2 S7: Email -->
+  <rect x="1160" y="952" width="960" height="72" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="1640" y="983" text-anchor="middle" font-size="14" font-weight="600" fill="#7f1d1d">Email Guest — Splat Link · Mesh File · Print Confirmation</text>
+  <text x="1640" y="1004" text-anchor="middle" font-size="12" fill="#991b1b">Splat viewer link · downloadable OBJ/FBX · 3D print queue status</text>
+  <rect x="2040" y="958" width="62" height="20" rx="10" fill="#fee2e2"/>
+  <text x="2071" y="972" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">BUILD</text>
+
+  <!-- ░░ CONVERGE ARROWS TO CLOUD ░░ -->
+  <line x1="560" y1="1124" x2="560" y2="1174" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="1640" y1="1024" x2="1640" y2="1174" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="560" y1="1174" x2="1100" y2="1174" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="1640" y1="1174" x2="1100" y2="1174" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="1100" y1="1174" x2="1100" y2="1184" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ░░ CLOUD SERVER ░░ -->
+  <rect x="300" y="1184" width="1600" height="84" rx="10" fill="#faf5ff" stroke="#9333ea" stroke-width="2" filter="url(#sh)"/>
+  <text x="1100" y="1216" text-anchor="middle" font-size="15" font-weight="700" fill="#581c87">Scan The Wild — Cloud Server Auto-Upload</text>
+  <text x="1100" y="1240" text-anchor="middle" font-size="13" fill="#7e22ce">Main folder auto-syncs to cloud · project archived · accessible for re-processing or re-export</text>
+  <rect x="1800" y="1192" width="72" height="20" rx="10" fill="#fef9c3"/>
+  <text x="1836" y="1206" text-anchor="middle" font-size="10" font-weight="600" fill="#d97706">CONFIGURE</text>
+
+  <!-- arrow to orchestrator -->
+  <line x1="1100" y1="1268" x2="1100" y2="1298" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ░░ ORCHESTRATOR ░░ -->
+  <rect x="300" y="1298" width="1600" height="100" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2" filter="url(#sh)"/>
+  <text x="1100" y="1328" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a8a">Python Orchestrator  ·  Core Build</text>
+  <text x="1100" y="1352" text-anchor="middle" font-size="12" fill="#1d4ed8">Watches Camera2Cloud drop folders · receives iPad form signal · routes to RIG 1 or RIG 2</text>
+  <text x="1100" y="1374" text-anchor="middle" font-size="12" fill="#1d4ed8">Calls AutoRC.exe subprocess · calls LichtFeld Python plugin · triggers email · manages cloud upload</text>
+  <rect x="1800" y="1306" width="62" height="20" rx="10" fill="#fee2e2"/>
+  <text x="1831" y="1320" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">BUILD</text>
+
+  <!-- ░░ TASK SPLIT ░░ -->
+  <rect x="300" y="1440" width="760" height="196" rx="10" fill="white" stroke="#e2e8f0" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="300" y="1440" width="760" height="38" rx="10" fill="#1e293b"/>
+  <rect x="300" y="1460" width="760" height="18" fill="#1e293b"/>
+  <text x="680" y="1465" text-anchor="middle" font-size="14" font-weight="700" fill="white">Senior Dev</text>
+  <text x="320" y="1504" font-size="12" fill="#334155">→  COLMAP headless integration + GCP one-time calibration</text>
+  <text x="320" y="1526" font-size="12" fill="#334155">→  .rcbox → LichtFeld bounding box converter (verify scale s=)</text>
+  <text x="320" y="1548" font-size="12" fill="#334155">→  Camera2Cloud network config (PC1 + PC2)</text>
+  <text x="320" y="1570" font-size="12" fill="#334155">→  AutoRC new preset for Open Sauce volume</text>
+  <text x="320" y="1592" font-size="12" fill="#334155">→  LichtFeld Python plugin / headless setup</text>
+  <text x="320" y="1614" font-size="12" fill="#334155">→  AutoRC preset config for RIG 2 turntable</text>
+
+  <rect x="1140" y="1440" width="760" height="196" rx="10" fill="white" stroke="#e2e8f0" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="1140" y="1440" width="760" height="38" rx="10" fill="#1e293b"/>
+  <rect x="1140" y="1460" width="760" height="18" fill="#1e293b"/>
+  <text x="1520" y="1465" text-anchor="middle" font-size="14" font-weight="700" fill="white">Junior Devs (×2)</text>
+  <text x="1160" y="1504" font-size="12" fill="#334155">→  iPad web app (guest form + rig selector)</text>
+  <text x="1160" y="1526" font-size="12" fill="#334155">→  Folder naming + Camera2Cloud watcher script</text>
+  <text x="1160" y="1548" font-size="12" fill="#334155">→  Email delivery (SMTP, guest templates)</text>
+  <text x="1160" y="1570" font-size="12" fill="#334155">→  SuperSplat compression automation</text>
+  <text x="1160" y="1592" font-size="12" fill="#334155">→  Prusa mesh handoff script</text>
+  <text x="1160" y="1614" font-size="12" fill="#334155">→  Gallery integration (nice to have)</text>
+
+  <!-- ░░ MILESTONE SCHEDULE ░░ -->
+  <rect x="300" y="1680" width="1600" height="56" rx="10" fill="#1e293b"/>
+  <text x="1100" y="1714" text-anchor="middle" font-size="16" font-weight="700" fill="white" letter-spacing="0.5">MILESTONE SCHEDULE</text>
+
+  <!-- M1 -->
+  <rect x="300" y="1756" width="290" height="90" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="300" y="1756" width="290" height="32" rx="8" fill="#2563eb"/>
+  <rect x="300" y="1772" width="290" height="16" fill="#2563eb"/>
+  <text x="445" y="1778" text-anchor="middle" font-size="13" font-weight="700" fill="white">M1 — May 9</text>
+  <text x="310" y="1808" font-size="11" fill="#334155">AutoRC preset ready</text>
+  <text x="310" y="1824" font-size="11" fill="#334155">COLMAP calibrated</text>
+  <text x="310" y="1840" font-size="11" fill="#334155">LichtFeld headless running</text>
+
+  <!-- M2 -->
+  <rect x="620" y="1756" width="290" height="90" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="620" y="1756" width="290" height="32" rx="8" fill="#2563eb"/>
+  <rect x="620" y="1772" width="290" height="16" fill="#2563eb"/>
+  <text x="765" y="1778" text-anchor="middle" font-size="13" font-weight="700" fill="white">M2 — May 30</text>
+  <text x="630" y="1808" font-size="11" fill="#334155">Orchestrator v1 running</text>
+  <text x="630" y="1824" font-size="11" fill="#334155">Camera2Cloud → both rigs</text>
+  <text x="630" y="1840" font-size="11" fill="#334155">Folder naming done</text>
+
+  <!-- M3 -->
+  <rect x="940" y="1756" width="290" height="90" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="940" y="1756" width="290" height="32" rx="8" fill="#2563eb"/>
+  <rect x="940" y="1772" width="290" height="16" fill="#2563eb"/>
+  <text x="1085" y="1778" text-anchor="middle" font-size="13" font-weight="700" fill="white">M3 — Jun 20</text>
+  <text x="950" y="1808" font-size="11" fill="#334155">iPad app live</text>
+  <text x="950" y="1824" font-size="11" fill="#334155">Email delivery working</text>
+  <text x="950" y="1840" font-size="11" fill="#334155">End-to-end test both rigs</text>
+
+  <!-- M4 -->
+  <rect x="1260" y="1756" width="290" height="90" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="1260" y="1756" width="290" height="32" rx="8" fill="#2563eb"/>
+  <rect x="1260" y="1772" width="290" height="16" fill="#2563eb"/>
+  <text x="1405" y="1778" text-anchor="middle" font-size="13" font-weight="700" fill="white">M4 — Jul 7</text>
+  <text x="1270" y="1808" font-size="11" fill="#334155">Full stress test done</text>
+  <text x="1270" y="1824" font-size="11" fill="#334155">Prusa + SuperSplat live</text>
+  <text x="1270" y="1840" font-size="11" fill="#334155">All edge cases handled</text>
+
+  <!-- M5 FREEZE -->
+  <rect x="1580" y="1756" width="320" height="90" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2" filter="url(#sh)"/>
+  <rect x="1580" y="1756" width="320" height="32" rx="8" fill="#dc2626"/>
+  <rect x="1580" y="1772" width="320" height="16" fill="#dc2626"/>
+  <text x="1740" y="1778" text-anchor="middle" font-size="13" font-weight="700" fill="white">FREEZE — Jul 14</text>
+  <text x="1590" y="1808" font-size="11" fill="#991b1b">No new changes</text>
+  <text x="1590" y="1824" font-size="11" fill="#991b1b">On-site setup begins</text>
+  <text x="1590" y="1840" font-size="11" fill="#991b1b">Final checks only · Live Jul 18</text>
+
+  <!-- progress bar -->
+  <rect x="300" y="1868" width="1600" height="10" rx="5" fill="#e2e8f0"/>
+  <rect x="300" y="1868" width="0" height="10" rx="5" fill="#2563eb"/>
+  <text x="300" y="1900" font-size="11" fill="#64748b">Apr 22 (today)</text>
+  <text x="537" y="1900" font-size="11" fill="#64748b">May 9</text>
+  <text x="780" y="1900" font-size="11" fill="#64748b">May 30</text>
+  <text x="1026" y="1900" font-size="11" fill="#64748b">Jun 20</text>
+  <text x="1270" y="1900" font-size="11" fill="#64748b">Jul 7</text>
+  <text x="1830" y="1900" font-size="11" fill="#dc2626" font-weight="700">Jul 14 ⬤</text>
+
+  <!-- tick marks -->
+  <line x1="445" y1="1868" x2="445" y2="1880" stroke="#64748b" stroke-width="1"/>
+  <line x1="765" y1="1868" x2="765" y2="1880" stroke="#64748b" stroke-width="1"/>
+  <line x1="1085" y1="1868" x2="1085" y2="1880" stroke="#64748b" stroke-width="1"/>
+  <line x1="1405" y1="1868" x2="1405" y2="1880" stroke="#64748b" stroke-width="1"/>
+  <line x1="1900" y1="1868" x2="1900" y2="1880" stroke="#dc2626" stroke-width="2"/>
+
+  <!-- footer -->
+  <text x="1100" y="1960" text-anchor="middle" font-size="12" fill="#94a3b8">Open Sauce 2026 · opensauce.show · Generated April 22 2026</text>
+</svg>

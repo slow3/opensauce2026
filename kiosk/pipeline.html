@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open Sauce 2026 — Scanning Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --border: #e2dfd8;
+    --border-bright: #ccc9c0;
+    --text: #1a1916;
+    --muted: #7a7570;
+    --dim: #b0aca4;
+
+    --exists:   #16a34a;
+    --exists-bg: rgba(22,163,74,.07);
+    --config:   #d97706;
+    --config-bg: rgba(217,119,6,.07);
+    --build:    #dc2626;
+    --build-bg: rgba(220,38,38,.07);
+    --cloud:    #7c3aed;
+    --cloud-bg: rgba(124,58,237,.07);
+
+    --accent: #4f46e5;
+    --accent2: #7c3aed;
+  }
+
+  html { background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; }
+
+  body {
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 32px 56px 28px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .header-left {}
+  .header-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .header-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    color: var(--text);
+  }
+  .header-sub {
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .header-sub span { color: var(--build); font-weight: 600; }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: .06em;
+  }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .content {
+    padding: 40px 56px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── INTAKE CARD ── */
+  .intake {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0;
+  }
+  .intake-card {
+    background: var(--cloud-bg);
+    border: 1px solid rgba(168,85,247,.25);
+    border-radius: 12px;
+    padding: 18px 36px;
+    text-align: center;
+    min-width: 480px;
+    position: relative;
+  }
+  .intake-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #c084fc;
+    margin-bottom: 4px;
+  }
+  .intake-desc {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge {
+    position: absolute;
+    top: 12px; right: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .badge-build   { background: var(--build-bg);  color: var(--build);  border: 1px solid rgba(239,68,68,.2); }
+  .badge-config  { background: var(--config-bg); color: var(--config); border: 1px solid rgba(245,158,11,.2); }
+  .badge-exists  { background: var(--exists-bg); color: var(--exists); border: 1px solid rgba(34,197,94,.2); }
+  .badge-cloud   { background: var(--cloud-bg);  color: var(--cloud);  border: 1px solid rgba(168,85,247,.2); }
+
+  /* ── FORK CONNECTOR ── */
+  .fork-svg {
+    width: 100%;
+    height: 48px;
+    flex-shrink: 0;
+    display: block;
+  }
+
+  /* ── DUAL COLUMNS ── */
+  .dual {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .rig-col {}
+
+  .rig-header {
+    background: var(--text);
+    border: 1px solid var(--text);
+    border-radius: 10px;
+    padding: 12px 20px;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .rig-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .15em;
+    color: var(--accent);
+    background: rgba(99,102,241,.12);
+    border: 1px solid rgba(99,102,241,.2);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .rig-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -.01em;
+  }
+
+  /* ── PIPELINE STEPS ── */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .connector {
+    width: 1px;
+    height: 20px;
+    background: linear-gradient(to bottom, var(--border-bright), var(--dim));
+    margin: 0 auto;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .connector::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px; height: 5px;
+    border-right: 1px solid var(--dim);
+    border-bottom: 1px solid var(--dim);
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    transition: border-color .2s;
+  }
+  .step:hover { border-color: var(--border-bright); }
+
+  .step-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -.01em;
+    padding-right: 64px;
+  }
+  .step-desc {
+    font-size: 10.5px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.5;
+    padding-right: 64px;
+  }
+
+  .step .badge { top: 12px; right: 12px; }
+
+  /* status tint on left border */
+  .step[data-status="exists"]  { border-left: 2px solid var(--exists); }
+  .step[data-status="config"]  { border-left: 2px solid var(--config); }
+  .step[data-status="build"]   { border-left: 2px solid var(--build); }
+  .step[data-status="cloud"]   { border-left: 2px solid var(--cloud); }
+
+  /* ── SPLIT CONNECTOR (RIG 2 branch) ── */
+  .split-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .split-paths {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .path-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .12em;
+    color: var(--dim);
+    text-transform: uppercase;
+    text-align: center;
+    padding: 6px 0;
+  }
+  .split-svg {
+    height: 36px;
+    width: 100%;
+    display: block;
+  }
+  .merge-svg {
+    height: 36px;
+    width: 100%;
+    display: block;
+  }
+
+  /* ── SHARED CARDS (bottom of pipelines) ── */
+  .shared-section {
+    margin-top: 32px;
+  }
+  .shared-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    position: relative;
+    margin-bottom: 0;
+  }
+  .shared-card[data-status="cloud"] { border-left: 2px solid var(--cloud); }
+  .shared-card[data-status="build"] { border-left: 2px solid var(--build); }
+  .shared-card .badge { top: 14px; right: 16px; }
+  .shared-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    padding-right: 80px;
+    margin-bottom: 4px;
+  }
+  .shared-desc {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.55;
+    padding-right: 80px;
+  }
+
+  /* merge two rig flows */
+  .merge-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0;
+  }
+
+  /* ── ORCHESTRATOR + ASSIGNMENTS ── */
+  .orch-card {
+    background: rgba(99,102,241,.06);
+    border: 1px solid rgba(99,102,241,.2);
+    border-radius: 10px;
+    padding: 16px 20px;
+    position: relative;
+  }
+  .orch-card .badge { top: 14px; right: 16px; }
+  .orch-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .orch-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    padding-right: 70px;
+  }
+  .orch-desc {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.55;
+  }
+
+  /* ── ASSIGNMENTS ── */
+  .assignments {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .assign-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .assign-head {
+    background: #13151f;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -.01em;
+  }
+  .assign-body {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .assign-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.4;
+  }
+  .assign-item::before {
+    content: '→';
+    color: var(--dim);
+    flex-shrink: 0;
+    font-size: 10px;
+  }
+
+  /* ── MILESTONES ── */
+  .milestones-section {
+    margin-top: 40px;
+  }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .18em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .milestones {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    align-items: start;
+  }
+  .ms-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .ms-card.freeze {
+    border-color: rgba(239,68,68,.3);
+  }
+  .ms-head {
+    background: rgba(99,102,241,.12);
+    border-bottom: 1px solid var(--border);
+    padding: 9px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: .04em;
+  }
+  .ms-card.freeze .ms-head {
+    background: rgba(239,68,68,.12);
+    color: var(--build);
+  }
+  .ms-body {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .ms-item {
+    font-size: 10.5px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.35;
+  }
+
+  /* ── TIMELINE BAR ── */
+  .timeline {
+    margin-top: 20px;
+    position: relative;
+  }
+  .timeline-track {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    position: relative;
+    overflow: visible;
+  }
+  .timeline-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    /* today = Apr 22; freeze = Jul 14; total span Apr22->Jul14 = 83 days; 0 days elapsed */
+    width: 0%;
+  }
+  .timeline-ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  .t-tick {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    color: var(--dim);
+    letter-spacing: .04em;
+  }
+  .t-tick.freeze { color: var(--build); font-weight: 600; }
+  .timeline-dots {
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    text-align: center;
+    letter-spacing: .06em;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .anim { animation: fadeUp .4s ease both; }
+  .anim-d1 { animation-delay: .05s; }
+  .anim-d2 { animation-delay: .12s; }
+  .anim-d3 { animation-delay: .18s; }
+  .anim-d4 { animation-delay: .24s; }
+  .anim-d5 { animation-delay: .30s; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header anim">
+  <div class="header-left">
+    <div class="header-eyebrow">Open Sauce 2026</div>
+    <div class="header-title">Scanning Pipeline</div>
+    <div class="header-sub">Hard Deadline: Jul 14 &nbsp;·&nbsp; Live: Jul 18 &nbsp;·&nbsp; <span>83 days remaining</span></div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--exists)"></div> Exists</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--config)"></div> Configure</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--build)"></div> Build</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--cloud)"></div> Cloud</div>
+  </div>
+</header>
+
+<div class="content">
+
+  <!-- INTAKE -->
+  <div class="intake anim anim-d1">
+    <div class="intake-card">
+      <span class="badge badge-build">Build</span>
+      <div class="intake-label">iPad Web App — Guest Intake</div>
+      <div class="intake-desc">Guest enters name · email · company · selects RIG 1 or RIG 2</div>
+    </div>
+  </div>
+
+  <!-- FORK ARROWS -->
+  <svg class="fork-svg" viewBox="0 0 800 48" preserveAspectRatio="none" fill="none">
+    <line x1="400" y1="0" x2="400" y2="24" stroke="#2a2f45" stroke-width="1.5"/>
+    <line x1="400" y1="24" x2="200" y2="24" stroke="#2a2f45" stroke-width="1.5"/>
+    <line x1="400" y1="24" x2="600" y2="24" stroke="#2a2f45" stroke-width="1.5"/>
+    <line x1="200" y1="24" x2="200" y2="48" stroke="#2a2f45" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="600" y1="24" x2="600" y2="48" stroke="#2a2f45" stroke-width="1.5" marker-end="url(#arr)"/>
+    <defs>
+      <marker id="arr" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto">
+        <polygon points="0 0, 6 2.5, 0 5" fill="#2a2f45"/>
+      </marker>
+    </defs>
+  </svg>
+
+  <!-- DUAL RIG COLUMNS -->
+  <div class="dual anim anim-d2">
+
+    <!-- RIG 1 -->
+    <div class="rig-col">
+      <div class="rig-header">
+        <span class="rig-num">RIG 01</span>
+        <span class="rig-title">Gaussian Splat for Humans</span>
+      </div>
+      <div class="pipeline">
+
+        <div class="connector"></div>
+        <div class="step" data-status="exists">
+          <span class="badge badge-exists">Exists</span>
+          <div class="step-name">40+ Cameras Triggered</div>
+          <div class="step-desc">Manual or automatic NOXON switch · guest strikes pose in volume</div>
+        </div>
+
+        <div class="connector"></div>
+        <div class="step" data-status="config">
+          <span class="badge badge-config">Configure</span>
+          <div class="step-name">Camera2Cloud → PC1</div>
+          <div class="step-desc">All images transferred to PC1 via local network</div>
+        </div>
+
+        <div class="connector"></div>
+        <div class="step" data-status="build">
+          <span class="badge badge-build">Build</span>
+          <div class="step-name">Orchestrator — Create Guest Folder</div>
+          <div class="step-desc">Watches Camera2Cloud drop · names folder GUESTNAME_TIMESTAMP</div>
+        </div>
+
+        <div class="connector"></div>
+        <div class="step" data-status="exists">
+          <span class="badge badge-exists">Exists</span>
+          <div class="step-name">COLMAP — Camera Alignment + GCPs</div>
+          <div class="step-desc">Headless via AutoRC · sets scale, orientation, ground plane · one-time calibration</div>
+        </div>
+
+        <div class="connector"></div>
+        <div class="step" data-status="build">
+          <span class="badge badge-build">Build</span>
+          <div class="step-name">LichtFeld Studio — Gaussian Splat</div>
+          <div class="step-desc">Takes COLMAP output directly · headless Python plugin · C++23/CUDA accelerated</div>
+        </div>
+
+        <div class="connector"></div>
+        <div class="step" data-status="build">
+          <span class="badge badge-build">Build</span>
+          <div class="step-name">Splat Trim — .rcbox Bounding Region</div>
+          <div class="step-desc">Python script converts RC .rcbox → LichtFeld region · crops splat to volume</div>
+        </div>
+
+        <div class="connector"></div>
+        <div class="step" data-status="config">
+          <span class="badge badge-config">Automate</span>
+          <div class="step-name">SuperSplat — Compress + Upload</div>
+          <div class="step-desc">Open-source compression · uploads to SuperSplat cloud · generates guest link</div>
+        </div>
+
+        <div class="connector"></div>
+        <div class="step" data-status="build">
+          <span class="badge badge-build">Build</span>
+          <div class="step-name">Email Guest — Splat Viewer Link</div>
+          <div class="step-desc">Sends SuperSplat link · optional gallery entry on SuperSplat or Arrival.Space</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIG 2 -->
+    <div class="rig-col">
+      <div class="rig-header">
+        <span class="rig-num">RIG 02</span>
+        <span class="rig-title">Turntable — Objects → Mesh + Splat + 3D Print</span>
+      </div>
+      <div class="pipeline">
+
+        <div class="connector"></div>
+        <div class="step" data-status="exists">
+          <span class="badge badge-exists">Exists</span>
+          <div class="step-name">Guest Places Object on Turntable</div>
+          <div class="step-desc">8 FujiFilm cameras · turntable rotates 10° × 36 steps = 288 photos</div>
+        </div>
+
+        <div class="connector"></div>
+        <div class="step" data-status="config">
+          <span class="badge badge-config">Configure</span>
+          <div class="step-name">Camera2Cloud → PC2</div>
+          <div class="step-desc">All 288 images transferred to PC2 via local network</div>
+        </div>
+
+        <div class="connector"></div>
+        <div class="step" data-status="build">
+          <span class="badge badge-build">Build</span>
+          <div class="step-name">Orchestrator — Create Project Folder</div>
+          <div class="step-desc">Triggered by iPad rig selection · names folder PROJECT_GUESTNAME_TIMESTAMP</div>
+        </div>
+
+        <div class="connector"></div>
+        <div class="step" data-status="exists">
+          <span class="badge badge-exists">Exists</span>
+          <div class="step-name">COLMAP — Camera Alignment + GCPs</div>
+          <div class="step-desc">Same GCP calibration as RIG 1 · one-time setup · sets shared reconstruction region</div>
+        </div>
+
+        <!-- SPLIT -->
+        <div class="split-wrap">
+          <svg class="split-svg" viewBox="0 0 400 36" preserveAspectRatio="none" fill="none">
+            <line x1="200" y1="0" x2="200" y2="18" stroke="#2a2f45" stroke-width="1.5"/>
+            <line x1="200" y1="18" x2="100" y2="18" stroke="#2a2f45" stroke-width="1.5"/>
+            <line x1="200" y1="18" x2="300" y2="18" stroke="#2a2f45" stroke-width="1.5"/>
+            <line x1="100" y1="18" x2="100" y2="36" stroke="#2a2f45" stroke-width="1.5"/>
+            <line x1="300" y1="18" x2="300" y2="36" stroke="#2a2f45" stroke-width="1.5"/>
+          </svg>
+
+          <div class="split-paths">
+            <div>
+              <div class="path-label">Mesh path</div>
+              <div class="step" data-status="exists">
+                <span class="badge badge-exists">Exists</span>
+                <div class="step-name">AutoRC → RealityCapture</div>
+                <div class="step-desc">Full mesh · multi-LOD · OBJ/FBX</div>
+              </div>
+              <div class="connector"></div>
+              <div class="step" data-status="build">
+                <span class="badge badge-build">Build</span>
+                <div class="step-name">Prusa Slicer → 3D Print</div>
+                <div class="step-desc">Auto-send mesh · guest keepsake print</div>
+              </div>
+            </div>
+            <div>
+              <div class="path-label">Splat path</div>
+              <div class="step" data-status="build">
+                <span class="badge badge-build">Build</span>
+                <div class="step-name">LichtFeld + .rcbox Region</div>
+                <div class="step-desc">Bounding box from RC · Gaussian Splat</div>
+              </div>
+              <div class="connector"></div>
+              <div class="step" data-status="config">
+                <span class="badge badge-config">Automate</span>
+                <div class="step-name">SuperSplat Compression</div>
+                <div class="step-desc">Compress · upload · generate guest link</div>
+              </div>
+            </div>
+          </div>
+
+          <svg class="merge-svg" viewBox="0 0 400 36" preserveAspectRatio="none" fill="none">
+            <line x1="100" y1="0" x2="100" y2="18" stroke="#2a2f45" stroke-width="1.5"/>
+            <line x1="300" y1="0" x2="300" y2="18" stroke="#2a2f45" stroke-width="1.5"/>
+            <line x1="100" y1="18" x2="200" y2="18" stroke="#2a2f45" stroke-width="1.5"/>
+            <line x1="300" y1="18" x2="200" y2="18" stroke="#2a2f45" stroke-width="1.5"/>
+            <line x1="200" y1="18" x2="200" y2="36" stroke="#2a2f45" stroke-width="1.5"/>
+          </svg>
+        </div>
+
+        <div class="step" data-status="build">
+          <span class="badge badge-build">Build</span>
+          <div class="step-name">Email Guest — Splat · Mesh · Print Confirmation</div>
+          <div class="step-desc">Splat viewer link · downloadable OBJ/FBX · 3D print queue status</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MERGE BOTH RIGS DOWN -->
+  <svg style="display:block;width:100%;height:48px;margin-top:0" viewBox="0 0 1000 48" preserveAspectRatio="none" fill="none">
+    <line x1="250" y1="0" x2="250" y2="24" stroke="#2a2f45" stroke-width="1.5"/>
+    <line x1="750" y1="0" x2="750" y2="24" stroke="#2a2f45" stroke-width="1.5"/>
+    <line x1="250" y1="24" x2="500" y2="24" stroke="#2a2f45" stroke-width="1.5"/>
+    <line x1="750" y1="24" x2="500" y2="24" stroke="#2a2f45" stroke-width="1.5"/>
+    <line x1="500" y1="24" x2="500" y2="48" stroke="#2a2f45" stroke-width="1.5"/>
+  </svg>
+
+  <!-- CLOUD SYNC -->
+  <div class="shared-card anim anim-d3" data-status="cloud" style="margin-bottom:0">
+    <span class="badge badge-config">Configure</span>
+    <div class="shared-name">Scan The Wild — Cloud Server Auto-Upload</div>
+    <div class="shared-desc">Main folder auto-syncs to cloud · project archived · accessible for re-processing or re-export</div>
+  </div>
+
+  <div class="connector" style="margin:0 auto"></div>
+
+  <!-- ORCHESTRATOR -->
+  <div class="orch-card anim anim-d3">
+    <span class="badge badge-build">Build</span>
+    <div class="orch-label">Core System</div>
+    <div class="orch-name">Python Orchestrator</div>
+    <div class="orch-desc">
+      Watches Camera2Cloud drop folders · receives iPad form signal · routes to RIG 1 or RIG 2<br>
+      Calls AutoRC.exe subprocess · calls LichtFeld Python plugin · triggers email · manages cloud upload
+    </div>
+  </div>
+
+  <!-- ASSIGNMENTS -->
+  <div class="assignments anim anim-d4">
+    <div class="assign-card">
+      <div class="assign-head">Senior Dev</div>
+      <div class="assign-body">
+        <div class="assign-item">COLMAP headless integration + GCP one-time calibration</div>
+        <div class="assign-item">.rcbox → LichtFeld bounding box converter (verify scale s=)</div>
+        <div class="assign-item">Camera2Cloud network config (PC1 + PC2)</div>
+        <div class="assign-item">AutoRC new preset for Open Sauce volume</div>
+        <div class="assign-item">LichtFeld Python plugin / headless setup</div>
+        <div class="assign-item">AutoRC preset config for RIG 2 turntable</div>
+      </div>
+    </div>
+    <div class="assign-card">
+      <div class="assign-head">Junior Devs ×2</div>
+      <div class="assign-body">
+        <div class="assign-item">iPad web app (guest form + rig selector)</div>
+        <div class="assign-item">Folder naming + Camera2Cloud watcher script</div>
+        <div class="assign-item">Email delivery (SMTP, guest templates)</div>
+        <div class="assign-item">SuperSplat compression automation</div>
+        <div class="assign-item">Prusa mesh handoff script</div>
+        <div class="assign-item">Gallery integration (nice to have)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MILESTONES -->
+  <div class="milestones-section anim anim-d5">
+    <div class="section-label">Milestone Schedule</div>
+    <div class="milestones">
+
+      <div class="ms-card">
+        <div class="ms-head">M1 — May 9</div>
+        <div class="ms-body">
+          <div class="ms-item">AutoRC preset ready</div>
+          <div class="ms-item">COLMAP calibrated</div>
+          <div class="ms-item">LichtFeld headless running</div>
+        </div>
+      </div>
+
+      <div class="ms-card">
+        <div class="ms-head">M2 — May 30</div>
+        <div class="ms-body">
+          <div class="ms-item">Orchestrator v1 running</div>
+          <div class="ms-item">Camera2Cloud → both rigs</div>
+          <div class="ms-item">Folder naming done</div>
+        </div>
+      </div>
+
+      <div class="ms-card">
+        <div class="ms-head">M3 — Jun 20</div>
+        <div class="ms-body">
+          <div class="ms-item">iPad app live</div>
+          <div class="ms-item">Email delivery working</div>
+          <div class="ms-item">End-to-end test both rigs</div>
+        </div>
+      </div>
+
+      <div class="ms-card">
+        <div class="ms-head">M4 — Jul 7</div>
+        <div class="ms-body">
+          <div class="ms-item">Full stress test done</div>
+          <div class="ms-item">Prusa + SuperSplat live</div>
+          <div class="ms-item">All edge cases handled</div>
+        </div>
+      </div>
+
+      <div class="ms-card freeze">
+        <div class="ms-head">FREEZE — Jul 14</div>
+        <div class="ms-body">
+          <div class="ms-item">No new changes</div>
+          <div class="ms-item">On-site setup begins</div>
+          <div class="ms-item">Final checks · Live Jul 18</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="timeline" style="margin-top:16px">
+      <div class="timeline-track">
+        <div class="timeline-fill"></div>
+        <!-- dots -->
+        <svg style="position:absolute;top:50%;left:0;width:100%;transform:translateY(-50%);overflow:visible" height="14" viewBox="0 0 100 14" preserveAspectRatio="none">
+          <!-- M1=17/83=20.5%, M2=38/83=45.8%, M3=59/83=71%, M4=76/83=91.6%, FREEZE=100% -->
+          <circle cx="20.5" cy="7" r="3.5" fill="#6366f1"/>
+          <circle cx="45.8" cy="7" r="3.5" fill="#6366f1"/>
+          <circle cx="71"   cy="7" r="3.5" fill="#6366f1"/>
+          <circle cx="91.6" cy="7" r="3.5" fill="#6366f1"/>
+          <circle cx="100"  cy="7" r="4"   fill="#ef4444"/>
+          <!-- TODAY dot -->
+          <circle cx="0"    cy="7" r="3.5" fill="#ffffff"/>
+        </svg>
+      </div>
+      <div class="timeline-ticks">
+        <span class="t-tick">Apr 22</span>
+        <span class="t-tick">May 9</span>
+        <span class="t-tick">May 30</span>
+        <span class="t-tick">Jun 20</span>
+        <span class="t-tick">Jul 7</span>
+        <span class="t-tick freeze">Jul 14 ●</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Open Sauce 2026 · opensauce.show · Generated April 22, 2026</div>
+
+</div>
+
+</body>
+</html>

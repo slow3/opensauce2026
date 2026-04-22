@@ -1,0 +1,38 @@
+{
+  "rig": 1,
+  "rig_label": "Human Splat",
+  "station_id": "PC1",
+
+  "paths": {
+    "projects_root": "E:\\Scan The Wild\\projects",
+    "camera2cloud_drop": "E:\\Scan The Wild\\incoming",
+    "autorc_exe": "D:\\Reconstructions\\20221223-AutoRC\\autorc.exe",
+    "autorc_preset": "D:\\Reconstructions\\20221223-AutoRC\\data\\presets\\opensauce-2026",
+    "colmap_exe": "C:\\Users\\Winslow\\COLMAP-3.8-windows-cuda\\bin\\colmap.exe",
+    "lichtfeld_exe": "C:\\Users\\Winslow\\Documents\\Gaussian Splatting\\SCANDY CLAUDE\\tools\\brush\\postshot-cli.exe",
+    "rcbox_file": "E:\\Scan The Wild\\calibration\\opensauce-2026.rcbox",
+    "splat_transform": "splat-transform"
+  },
+
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8000
+  },
+
+  "email": {
+    "smtp_host": "smtp.gmail.com",
+    "smtp_port": 587,
+    "sender_email": "noreply-bot@forager.earth",
+    "sender_name": "Scan The Wild",
+    "use_tls": true
+  },
+
+  "pipeline": {
+    "colmap_quality": "medium",
+    "lichtfeld_iterations": 10000,
+    "splat_strip_sh": true,
+    "image_settle_seconds": 5,
+    "image_count_rig1": 40,
+    "image_count_rig2": 288
+  }
+}
