@@ -1,0 +1,11 @@
+# Python deps for the cloud Docker container
+# (torch + torchvision are pre-installed in the pytorch/pytorch base image)
+boto3>=1.34
+runpod>=1.6
+plyfile>=0.9
+numpy>=1.26
+tqdm>=4.66
+Pillow>=10.0
+scipy>=1.12
+imageio>=2.34
+lpips>=0.1.4

@@ -561,11 +561,45 @@ def run_compress_only_pipeline(job: Job, ply_path: str, config: dict):
 def dispatch(job: Job, config: dict, src_folder: str = None):
     """Launch the correct pipeline in a background thread based on job.mode.
 
+    If cloud is enabled (config["cloud"]["enabled"] == true) and the mode
+    involves processing images from scratch (FULL / SPLAT / SPLAT_NO_EMAIL),
+    the heavy steps (COLMAP + 3DGS training) are offloaded to the cloud GPU.
+    The local pipeline resumes for crop → compress → email after the PLY
+    is downloaded.
+
     src_folder   — images drop folder (FULL / SPLAT / MESH modes)
     job.start_path — colmap dir (FROM_COLMAP) or .ply path (COMPRESS_ONLY)
     """
     mode = job.mode
 
+    # ── Cloud offload ──────────────────────────────────────────────────────
+    # Activate for image-based modes when a cloud backend is configured.
+    # FROM_COLMAP and COMPRESS_ONLY skip cloud (they start mid-pipeline).
+    # MESH skips cloud (AutoRC is a local Windows GUI app).
+    _cloud_eligible = mode in (
+        PipelineMode.FULL,
+        PipelineMode.SPLAT,
+        PipelineMode.SPLAT_NO_EMAIL,
+    )
+    if _cloud_eligible and src_folder:
+        try:
+            from .cloud_dispatcher import CloudDispatcher
+            cloud = CloudDispatcher(config)
+            if cloud.is_enabled():
+                log.info(f"[{job.job_id}] Cloud dispatch enabled ({cloud.backend}) — offloading")
+                t = threading.Thread(
+                    target=cloud.run_remote,
+                    args=(job, src_folder),
+                    daemon=True,
+                )
+                t.start()
+                return
+        except ImportError:
+            log.warning("cloud_dispatcher not available — falling back to local pipeline")
+        except Exception as e:
+            log.error(f"[{job.job_id}] Cloud init failed, falling back to local: {e}")
+
+    # ── Local pipeline ─────────────────────────────────────────────────────
     if mode in (PipelineMode.FULL,):
         fn   = run_rig1_pipeline if job.rig == 1 else run_rig2_pipeline
         args = (job, src_folder, config)

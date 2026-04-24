@@ -4,3 +4,4 @@ watchdog>=4.0
 plyfile>=0.9
 numpy>=1.26
 requests>=2.31
+boto3>=1.34

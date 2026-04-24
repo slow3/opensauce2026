@@ -35,5 +35,23 @@
     "image_settle_seconds": 5,
     "image_count_rig1": 40,
     "image_count_rig2": 288
+  },
+
+  "cloud": {
+    "_note": "Set enabled=true to offload COLMAP+3DGS training to a cloud GPU",
+    "enabled": false,
+    "backend": "runpod",
+    "s3_bucket": "YOUR-S3-BUCKET",
+    "s3_prefix": "opensauce/2026",
+    "aws_region": "us-east-1",
+
+    "_runpod_note": "Create a serverless endpoint from the cloud/Dockerfile image",
+    "runpod_api_key":    "rpa_YOUR_KEY_HERE",
+    "runpod_endpoint_id":"YOUR_ENDPOINT_ID",
+
+    "_batch_note": "AWS Batch backend requires a pre-baked Windows AMI + Batch job definition",
+    "batch_job_queue":      "opensauce-gpu-queue",
+    "batch_job_definition": "opensauce-pipeline:1",
+    "batch_status_prefix":  "opensauce/2026/batch-status"
   }
 }
