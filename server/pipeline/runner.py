@@ -163,7 +163,7 @@ def _quat_to_center(qw, qx, qy, qz, tx, ty, tz):
 
 
 def _read_colmap_images_bin(path: str) -> list:
-    """Parse COLMAP images.bin → list of (cx, cy, cz) camera world positions."""
+    """Parse COLMAP images.bin -> list of (cx, cy, cz) camera world positions."""
     import struct
     centers = []
     with open(path, "rb") as f:
@@ -255,7 +255,7 @@ def _save_capture_preview(job: Job, photos_dir: str):
     except Exception:
         shutil.copy2(str(mid), dest)
     job.previews["capture"] = "capture.jpg"
-    log.info(f"[{job.job_id}] Capture preview → {dest}")
+    log.info(f"[{job.job_id}] Capture preview -> {dest}")
 
 
 def _save_colmap_preview(job: Job, sparse_dir: str):
@@ -275,7 +275,7 @@ def _save_colmap_preview(job: Job, sparse_dir: str):
         with open(dest, "w") as f:
             f.write(svg)
         job.previews["colmap"] = "colmap.svg"
-        log.info(f"[{job.job_id}] COLMAP preview → {dest} ({len(centers)} cameras)")
+        log.info(f"[{job.job_id}] COLMAP preview -> {dest} ({len(centers)} cameras)")
     except Exception as e:
         log.warning(f"[{job.job_id}] COLMAP preview failed (non-fatal): {e}")
 
@@ -320,7 +320,7 @@ def _save_splat_preview(job: Job, box: dict = None):
             f.write(svg)
         key = "crop" if box else "splat"
         job.previews[key] = fname
-        log.info(f"[{job.job_id}] {'Crop' if box else 'Splat'} preview → {dest}")
+        log.info(f"[{job.job_id}] {'Crop' if box else 'Splat'} preview -> {dest}")
     except Exception as e:
         log.warning(f"[{job.job_id}] Splat preview failed (non-fatal): {e}")
 
@@ -361,7 +361,7 @@ def step_receive_images(job: Job, src_folder: str, config: dict) -> str:
             f"Drop folder: {src_folder}"
         )
 
-    log.info(f"Received {moved}/{expected} images → {photos_dir}")
+    log.info(f"Received {moved}/{expected} images -> {photos_dir}")
     job.project_dir = project_dir
     _save_capture_preview(job, photos_dir)
     return project_dir
@@ -438,7 +438,7 @@ def step_lichtfeld(job: Job, config: dict):
       --resize_factor downscale factor; "auto" (default) causes NaN/Inf at iter 10
                     for large sensors (e.g. 7728×5152). Set to 2 for best
                     quality/stability tradeoff, 4 for faster training.
-      --config      optional JSON config file (export from File → Export Config in GUI)
+      --config      optional JSON config file (export from File -> Export Config in GUI)
     """
     colmap_dir  = os.path.join(job.project_dir, "colmap")
     splats_dir  = os.path.join(job.project_dir, "Splats")
@@ -466,12 +466,12 @@ def step_lichtfeld(job: Job, config: dict):
 
     # Optional JSON config file — lets staff tune training params via LichtFeld GUI:
     #   1. Open LichtFeld GUI, set preferred parameters
-    #   2. File → Export Config → save to the path in config.json paths.lichtfeld_config
+    #   2. File -> Export Config -> save to the path in config.json paths.lichtfeld_config
     if lichtfeld_cfg and os.path.exists(lichtfeld_cfg):
         cmd += ["--config", lichtfeld_cfg]
         log.info(f"LichtFeld: using config file {lichtfeld_cfg}")
 
-    log.info(f"[{job.job_id}] LichtFeld log → {lf_log_path}")
+    log.info(f"[{job.job_id}] LichtFeld log -> {lf_log_path}")
     proc = subprocess.run(cmd, timeout=7200)
 
     if proc.returncode != 0:
@@ -494,8 +494,8 @@ def step_crop_splat(job: Job, config: dict):
     """Crop the raw .ply splat.
 
     Decision tree:
-    1. If an .rcbox calibration file is configured and exists → auto-crop via rcbox_converter.
-    2. Else → pause the pipeline (AWAITING_CROP) until staff POSTs crop config to
+    1. If an .rcbox calibration file is configured and exists -> auto-crop via rcbox_converter.
+    2. Else -> pause the pipeline (AWAITING_CROP) until staff POSTs crop config to
        /api/jobs/<id>/crop, then apply box, sphere, or skip as instructed.
     """
     raw_ply = job.outputs.get("raw_ply")
@@ -511,7 +511,7 @@ def step_crop_splat(job: Job, config: dict):
         cropped_ply = str(raw_path.with_stem(raw_path.stem + "_cropped"))
         trim_ply_with_rcbox(raw_ply, rcbox, cropped_ply)
         job.outputs["cropped_ply"] = cropped_ply
-        log.info(f"[{job.job_id}] Auto-cropped via .rcbox → {cropped_ply}")
+        log.info(f"[{job.job_id}] Auto-cropped via .rcbox -> {cropped_ply}")
         return
 
     # No .rcbox — pause and wait for staff to provide crop parameters
@@ -548,7 +548,7 @@ def step_crop_splat(job: Job, config: dict):
 
     job.outputs["cropped_ply"] = cropped_ply
     _save_splat_preview(job, box=crop)
-    log.info(f"[{job.job_id}] Manual crop ({crop_mode}) → {cropped_ply}")
+    log.info(f"[{job.job_id}] Manual crop ({crop_mode}) -> {cropped_ply}")
 
 
 def step_compress_splat(job: Job, config: dict):
@@ -562,8 +562,8 @@ def step_compress_splat(job: Job, config: dict):
         -N / --filter-nan           Remove NaN/Inf Gaussians
         -H / --filter-harmonics 0   Strip all SH (band 0 only = smallest file)
     Output format is inferred from extension:
-        .compressed.ply → PlayCanvas compressed PLY (smaller than plain PLY)
-        .html           → self-contained HTML viewer
+        .compressed.ply -> PlayCanvas compressed PLY (smaller than plain PLY)
+        .html           -> self-contained HTML viewer
     """
     source_ply      = job.outputs.get("cropped_ply") or job.outputs.get("raw_ply")
     splat_transform = config["paths"].get("splat_transform", "splat-transform")
@@ -626,12 +626,12 @@ def step_rc_mesh(job: Job, config: dict):
     from AutoRC's _AutoRC_Create.ps1 PowerShell source.
 
     Workflow:
-      addFolder → detectMarkers → align → [importGCP → update] →
-      selectMaximalComponent → setReconstructionRegion →
-      calculateHighModel → removeMarginalTriangles →
-      simplify(web_lod) → unwrap → calculateTexture → export FBX →
-      selectHigh → simplify(print_lod) → unwrap → reprojectTexture → export OBJ →
-      save → quit
+      addFolder -> detectMarkers -> align -> [importGCP -> update] ->
+      selectMaximalComponent -> setReconstructionRegion ->
+      calculateHighModel -> removeMarginalTriangles ->
+      simplify(web_lod) -> unwrap -> calculateTexture -> export FBX ->
+      selectHigh -> simplify(print_lod) -> unwrap -> reprojectTexture -> export OBJ ->
+      save -> quit
 
     Outputs stored in job.outputs:
       "mesh_fbx"  — web LOD FBX  (passed to Prusa handoff / email)
@@ -675,7 +675,7 @@ def step_rc_mesh(job: Job, config: dict):
     skip_highpoly_export  = rc_cfg.get("skip_highpoly_export", False)
     detail                = rc_cfg.get("detail", "high")  # high | normal | preview
 
-    # Detail → RC CLI command
+    # Detail -> RC CLI command
     detail_cmd = {
         "high":    "-calculateHighModel",
         "normal":  "-calculateNormalModel",
@@ -738,7 +738,7 @@ def step_rc_mesh(job: Job, config: dict):
         "-save", project_path,
     ]
 
-    # ── Web LOD: simplify → unwrap → texture → export FBX ─────────────────
+    # ── Web LOD: simplify -> unwrap -> texture -> export FBX ─────────────────
     cmd += [
         "-selectModel",        name_high,
         "-simplify",           simplify_web,
@@ -750,7 +750,7 @@ def step_rc_mesh(job: Job, config: dict):
         "-save",               project_path,
     ]
 
-    # ── Print LOD: simplify → unwrap → reproject from web LOD → export OBJ ─
+    # ── Print LOD: simplify -> unwrap -> reproject from web LOD -> export OBJ ─
     cmd += [
         "-selectModel",        name_high,
         "-simplify",           simplify_print,
@@ -792,7 +792,7 @@ def step_rc_mesh(job: Job, config: dict):
     if os.path.exists(path_high):
         job.outputs["mesh_high"] = path_high
 
-    log.info(f"[{job.job_id}] RC mesh complete: {len(produced)} model(s) → {models_dir}")
+    log.info(f"[{job.job_id}] RC mesh complete: {len(produced)} model(s) -> {models_dir}")
 
 
 def step_prusa_handoff(job: Job, config: dict):
@@ -884,7 +884,7 @@ def run_rig2_pipeline(job: Job, src_folder: str, config: dict):
 
 
 def run_splat_pipeline(job: Job, src_folder: str, config: dict, send_email: bool = True):
-    """Splat only: images → COLMAP → splat → crop → compress → (email)."""
+    """Splat only: images -> COLMAP -> splat -> crop -> compress -> (email)."""
     log.info(f"[{job.job_id}] Starting SPLAT pipeline for {job.guest.get('name')}")
     job.status = JobStatus.RUNNING
     try:
@@ -903,7 +903,7 @@ def run_splat_pipeline(job: Job, src_folder: str, config: dict, send_email: bool
 
 
 def run_mesh_pipeline(job: Job, src_folder: str, config: dict):
-    """Mesh only: images → RC mesh → email."""
+    """Mesh only: images -> RC mesh -> email."""
     log.info(f"[{job.job_id}] Starting MESH pipeline for {job.guest.get('name')}")
     job.status = JobStatus.RUNNING
 
@@ -983,7 +983,7 @@ def dispatch(job: Job, config: dict, src_folder: str = None):
     If cloud is enabled (config["cloud"]["enabled"] == true) and the mode
     involves processing images from scratch (FULL / SPLAT / SPLAT_NO_EMAIL),
     the heavy steps (COLMAP + 3DGS training) are offloaded to the cloud GPU.
-    The local pipeline resumes for crop → compress → email after the PLY
+    The local pipeline resumes for crop -> compress -> email after the PLY
     is downloaded.
 
     src_folder   — images drop folder (FULL / SPLAT / MESH modes)
