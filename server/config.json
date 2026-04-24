@@ -12,6 +12,8 @@
     "colmap_exe": "C:\\Users\\Winslow\\COLMAP-3.8-windows-cuda\\bin\\colmap.exe",
     "_colmap_note": "lib/ dir is auto-injected into PATH by runner.py — do not use COLMAP.bat",
     "lichtfeld_exe": "C:\\Users\\Winslow\\AppData\\Local\\LichtFeld Studio\\bin\\LichtFeld-Studio.exe",
+    "lichtfeld_config": "",
+    "_lichtfeld_config_note": "Optional: path to a LichtFeld JSON config (File → Export Config in the GUI). Overrides default training params.",
     "rcbox_file": "E:\\Scan The Wild\\calibration\\opensauce-2026.rcbox",
     "splat_transform": "splat-transform"
   },
@@ -49,6 +51,9 @@
   "pipeline": {
     "colmap_quality": "medium",
     "lichtfeld_iterations": 10000,
+    "lichtfeld_strategy": "adc",
+    "lichtfeld_resize_factor": 2,
+    "_lichtfeld_resize_note": "Downscale factor passed to LichtFeld --resize_factor. Options: 1 2 4 8 auto. 'auto' causes NaN/Inf at iter 10 on large sensors (7728x5152); use 2 for best quality.",
     "splat_strip_sh": true,
     "image_settle_seconds": 5,
     "image_count_rig1": 40,

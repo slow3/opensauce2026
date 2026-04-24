@@ -181,6 +181,63 @@ def _read_colmap_images_bin(path: str) -> list:
     return centers
 
 
+def _filter_colmap_points(sparse_dir: str) -> int:
+    """Remove statistical outliers from COLMAP points3D.bin (3-sigma in XYZ).
+
+    COLMAP routinely produces a few mismatched-feature triangulations that land
+    far outside the scene (e.g. 100× the scene scale). Those outlier seeds cause
+    NaN/Inf gradient explosions in 3DGS training within the first 10 iterations.
+    Filtering them out before passing the dataset to LichtFeld prevents this.
+
+    Returns the number of points removed.
+    """
+    import struct
+    import numpy as np
+
+    bin_path = os.path.join(sparse_dir, "0", "points3D.bin")
+    if not os.path.exists(bin_path):
+        return 0
+
+    points = []
+    with open(bin_path, "rb") as f:
+        num = struct.unpack("<Q", f.read(8))[0]
+        for _ in range(num):
+            pid    = struct.unpack("<Q",   f.read(8))[0]
+            xyz    = struct.unpack("<ddd", f.read(24))
+            rgb    = struct.unpack("<BBB", f.read(3))
+            error  = struct.unpack("<d",   f.read(8))[0]
+            tlen   = struct.unpack("<Q",   f.read(8))[0]
+            track  = f.read(tlen * 8)          # (IMAGE_ID u32, POINT2D_IDX u32) * n
+            points.append((pid, xyz, rgb, error, tlen, track))
+
+    if not points:
+        return 0
+
+    coords = np.array([p[1] for p in points])   # (N, 3)
+    median = np.median(coords, axis=0)
+    std    = np.std(coords, axis=0)
+    std[std < 1e-10] = 1.0                       # avoid division by zero
+    z_max  = np.abs((coords - median) / std).max(axis=1)
+    keep   = z_max <= 3.0
+    removed = int((~keep).sum())
+
+    if removed == 0:
+        return 0
+
+    kept = [p for p, k in zip(points, keep) if k]
+    with open(bin_path, "wb") as f:
+        f.write(struct.pack("<Q", len(kept)))
+        for pid, xyz, rgb, error, tlen, track in kept:
+            f.write(struct.pack("<Q",   pid))
+            f.write(struct.pack("<ddd", *xyz))
+            f.write(struct.pack("<BBB", *rgb))
+            f.write(struct.pack("<d",   error))
+            f.write(struct.pack("<Q",   tlen))
+            f.write(track)
+
+    return removed
+
+
 def _save_capture_preview(job: Job, photos_dir: str):
     """Copy (and thumbnail) the middle camera image as previews/capture.jpg."""
     IMAGE_EXTS = {".jpg", ".jpeg", ".tiff", ".tif", ".png"}
@@ -356,40 +413,75 @@ def step_colmap(job: Job, config: dict):
     subdirs = [d for d in Path(sparse_dir).iterdir() if d.is_dir()]
     if not subdirs:
         raise RuntimeError(f"COLMAP mapper produced no sparse reconstruction in {sparse_dir}")
+
+    removed = _filter_colmap_points(sparse_dir)
+    if removed:
+        log.info(f"[{job.job_id}] Filtered {removed} outlier point(s) from COLMAP sparse model")
+
     _save_colmap_preview(job, sparse_dir)
 
 
 def step_lichtfeld(job: Job, config: dict):
     """Run LichtFeld Studio headlessly to produce a .ply splat.
 
-    Correct CLI flags (confirmed from LichtFeld-Studio v0.4.2):
-      --data-path   COLMAP dataset root
-      --output-path output directory (LichtFeld creates it)
+    CLI flags used (confirmed from LichtFeld-Studio tag 5a92bff):
+      --data-path   COLMAP dataset root (must contain images/ and sparse/)
+      --output-path output directory (created automatically)
       --iter        training iteration count
-      --headless    disable visualisation
-      --undistort   required when COLMAP uses SIMPLE_RADIAL or any distorted model
+      --headless    disable the visualisation window (true headless)
+      --train       start training immediately without waiting for GUI input
+      --log-file    write log to a file instead of stdout (avoids pipe buffer block)
+      --strategy    adc (recommended for non-360° rigs) or mcmc
+      --gut         handle lens distortion analytically in-training (GUT mode);
+                    unlike --undistort (which pre-undistorts pixels), --gut is
+                    stable at resize_factor 2. Use --gut, not --undistort.
+      --resize_factor downscale factor; "auto" (default) causes NaN/Inf at iter 10
+                    for large sensors (e.g. 7728×5152). Set to 2 for best
+                    quality/stability tradeoff, 4 for faster training.
+      --config      optional JSON config file (export from File → Export Config in GUI)
     """
     colmap_dir  = os.path.join(job.project_dir, "colmap")
     splats_dir  = os.path.join(job.project_dir, "Splats")
     os.makedirs(splats_dir, exist_ok=True)
 
-    lichtfeld  = config["paths"]["lichtfeld_exe"]
-    iterations = config["pipeline"].get("lichtfeld_iterations", 10000)
+    lichtfeld     = config["paths"]["lichtfeld_exe"]
+    iterations    = config["pipeline"].get("lichtfeld_iterations", 10000)
+    lichtfeld_cfg = config["paths"].get("lichtfeld_config", "")
+    strategy      = config["pipeline"].get("lichtfeld_strategy", "adc")
+    resize_factor = str(config["pipeline"].get("lichtfeld_resize_factor", 2))
+    lf_log_path   = os.path.join(job.project_dir, "lichtfeld.log")
 
     cmd = [
         lichtfeld,
-        "--data-path",   colmap_dir,
-        "--output-path", splats_dir,
-        "--iter",        str(iterations),
+        "--data-path",     colmap_dir,
+        "--output-path",   splats_dir,
+        "--iter",          str(iterations),
+        "--strategy",      strategy,
+        "--headless",      # disable the visualisation window — no GPU interop needed
+        "--train",         # start training immediately without waiting for GUI
+        "--log-file",      lf_log_path,
+        "--gut",           # GUT mode — handles COLMAP lens distortion analytically
+        "--resize_factor", resize_factor,
     ]
 
-    result = _run(cmd, timeout=7200, hide_window=True)
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"LichtFeld failed (rc={result.returncode}):\n"
-            f"stdout: {result.stdout[-2000:] if result.stdout else '(empty)'}\n"
-            f"stderr: {result.stderr[-2000:] if result.stderr else '(empty)'}"
-        )
+    # Optional JSON config file — lets staff tune training params via LichtFeld GUI:
+    #   1. Open LichtFeld GUI, set preferred parameters
+    #   2. File → Export Config → save to the path in config.json paths.lichtfeld_config
+    if lichtfeld_cfg and os.path.exists(lichtfeld_cfg):
+        cmd += ["--config", lichtfeld_cfg]
+        log.info(f"LichtFeld: using config file {lichtfeld_cfg}")
+
+    log.info(f"[{job.job_id}] LichtFeld log → {lf_log_path}")
+    proc = subprocess.run(cmd, timeout=7200)
+
+    if proc.returncode != 0:
+        # Read last 2000 chars of log for the error message
+        try:
+            with open(lf_log_path, encoding="utf-8", errors="replace") as f:
+                tail = f.read()[-2000:]
+        except Exception:
+            tail = "(could not read log)"
+        raise RuntimeError(f"LichtFeld failed (rc={proc.returncode}):\n{tail}")
 
     plys = sorted(Path(splats_dir).glob("*.ply"), key=lambda p: p.stat().st_mtime)
     if not plys:
