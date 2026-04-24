@@ -15,7 +15,8 @@
     "lichtfeld_config": "",
     "_lichtfeld_config_note": "Optional: path to a LichtFeld JSON config (File → Export Config in the GUI). Overrides default training params.",
     "rcbox_file": "E:\\Scan The Wild\\calibration\\opensauce-2026.rcbox",
-    "splat_transform": "splat-transform"
+    "splat_transform": "C:\\Users\\Winslow\\AppData\\Roaming\\npm\\splat-transform.cmd",
+    "_splat_transform_note": "Full path to splat-transform.cmd required — subprocess.run on Windows cannot resolve .cmd files from PATH without shell=True"
   },
 
   "rc": {

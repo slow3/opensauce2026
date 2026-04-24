@@ -16,7 +16,8 @@
     "_lichtfeld_config_note": "Optional: path to a LichtFeld JSON config (File → Export Config in the GUI). Overrides default training params.",
     "rcbox_file": "E:\\Scan The Wild\\calibration\\opensauce-2026-rig2.rcbox",
     "_rcbox_note": "Created during on-site calibration. Used by step_rc_mesh for reconstruction region.",
-    "splat_transform": "splat-transform",
+    "splat_transform": "C:\\Users\\Winslow\\AppData\\Roaming\\npm\\splat-transform.cmd",
+    "_splat_transform_note": "Full path to splat-transform.cmd required — subprocess.run on Windows cannot resolve .cmd files from PATH without shell=True",
     "prusa_hotfolder": "E:\\Scan The Wild\\prusa_queue",
     "_prusa_note": "Set to the folder that Prusa Connect / PrusaSlicer monitors for new print jobs."
   },
