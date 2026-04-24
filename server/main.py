@@ -3,9 +3,11 @@ Open Sauce 2026 Server — Flask API for the scanning pipeline.
 Runs on each rig PC. Receives guest registrations from the iPad kiosk,
 watches the Camera2Cloud drop folder, and dispatches the pipeline.
 
-Start: python main.py
+Start (Rig 1):  python main.py
+Start (Rig 2):  python main.py --config config_rig2.json
 """
 
+import argparse
 import json
 import logging
 import os
@@ -30,7 +32,13 @@ logging.basicConfig(
 log = logging.getLogger("main")
 
 # ── config ────────────────────────────────────────────────────────────────────
-CONFIG_PATH = Path(__file__).parent / "config.json"
+_parser = argparse.ArgumentParser(description="Open Sauce 2026 pipeline server")
+_parser.add_argument("--config", default="config.json",
+                     help="Path to config file (default: config.json). "
+                          "Use config_rig2.json on the Rig 2 PC.")
+_args, _ = _parser.parse_known_args()
+
+CONFIG_PATH = Path(__file__).parent / _args.config
 with open(CONFIG_PATH) as f:
     CONFIG = json.load(f)
 

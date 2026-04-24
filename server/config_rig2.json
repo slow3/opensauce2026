@@ -1,0 +1,83 @@
+{
+  "rig": 2,
+  "rig_label": "Turntable",
+  "station_id": "PC2",
+
+  "paths": {
+    "projects_root": "E:\\Scan The Wild\\projects",
+    "camera2cloud_drop": "E:\\Scan The Wild\\incoming",
+    "rc_exe": "C:\\Program Files\\Capturing Reality\\RealityCapture\\RealityCapture.exe",
+    "autorc_data_dir": "D:\\Reconstructions\\20221223-AutoRC\\data\\settings",
+    "_autorc_note": "autorc_exe/autorc_preset are no longer used — runner.py calls rc_exe directly",
+    "colmap_exe": "C:\\Users\\Winslow\\COLMAP-3.8-windows-cuda\\bin\\colmap.exe",
+    "_colmap_note": "lib/ dir is auto-injected into PATH by runner.py — do not use COLMAP.bat",
+    "lichtfeld_exe": "C:\\Users\\Winslow\\AppData\\Local\\LichtFeld Studio\\bin\\LichtFeld-Studio.exe",
+    "lichtfeld_config": "",
+    "_lichtfeld_config_note": "Optional: path to a LichtFeld JSON config (File → Export Config in the GUI). Overrides default training params.",
+    "rcbox_file": "E:\\Scan The Wild\\calibration\\opensauce-2026-rig2.rcbox",
+    "_rcbox_note": "Created during on-site calibration. Used by step_rc_mesh for reconstruction region.",
+    "splat_transform": "splat-transform",
+    "prusa_hotfolder": "E:\\Scan The Wild\\prusa_queue",
+    "_prusa_note": "Set to the folder that Prusa Connect / PrusaSlicer monitors for new print jobs."
+  },
+
+  "rc": {
+    "_note": "RealityCapture CLI settings for Rig 2 mesh reconstruction (step_rc_mesh)",
+    "markers_params":        "D:\\Reconstructions\\20221223-AutoRC\\data\\settings\\markers-params.xml",
+    "gcp_params":            "D:\\Reconstructions\\20221223-AutoRC\\data\\settings\\gcp-params.xml",
+    "reproject_params":      "D:\\Reconstructions\\20221223-AutoRC\\data\\settings\\reproject-params.xml",
+    "unwrap_params":         "D:\\Reconstructions\\20221223-AutoRC\\data\\settings\\unwrap-params.xml",
+    "reconstruction_region": "E:\\Scan The Wild\\calibration\\opensauce-2026-rig2.rcbox",
+    "_region_note": "Leave blank to let RC compute auto bounds if .rcbox not yet calibrated",
+    "gcp_file":              "",
+    "_gcp_note": "Set to a CSV path if coded markers + GCP survey are used for Rig 2",
+    "detail":                "high",
+    "_detail_note": "high | normal | preview — maps to -calculateHighModel etc.",
+    "web_lod_count":         500000,
+    "print_lod_count":       100000,
+    "skip_highpoly_export":  false
+  },
+
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8000
+  },
+
+  "email": {
+    "smtp_host": "smtp.gmail.com",
+    "smtp_port": 587,
+    "sender_email": "noreply-bot@forager.earth",
+    "sender_name": "Scan The Wild",
+    "use_tls": true
+  },
+
+  "pipeline": {
+    "colmap_quality": "medium",
+    "lichtfeld_iterations": 10000,
+    "lichtfeld_strategy": "adc",
+    "lichtfeld_resize_factor": 2,
+    "_lichtfeld_resize_note": "Downscale factor passed to LichtFeld --resize_factor. Options: 1 2 4 8 auto. 'auto' causes NaN/Inf at iter 10 on large sensors; use 2 for best quality.",
+    "splat_strip_sh": true,
+    "image_settle_seconds": 5,
+    "image_count_rig1": 40,
+    "image_count_rig2": 288
+  },
+
+  "cloud": {
+    "_note": "Set enabled=true to offload COLMAP+3DGS training to a cloud GPU",
+    "enabled": false,
+    "backend": "runpod",
+    "s3_bucket": "YOUR-S3-BUCKET",
+    "s3_prefix": "opensauce/2026",
+    "aws_region": "us-east-1",
+
+    "_runpod_note": "Create a serverless endpoint from the cloud/Dockerfile image",
+    "runpod_api_key":    "rpa_YOUR_KEY_HERE",
+    "runpod_endpoint_id":"YOUR_ENDPOINT_ID",
+
+    "_batch_note": "AWS Batch backend requires a pre-baked Windows AMI + Batch job definition",
+    "batch_job_queue":      "opensauce-gpu-queue",
+    "batch_job_definition": "opensauce-pipeline:1",
+    "batch_status_prefix":  "opensauce/2026/batch-status"
+  }
+}
