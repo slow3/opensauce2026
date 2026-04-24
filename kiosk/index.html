@@ -238,6 +238,14 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--text-muted); }
 .job-status-pill.awaiting_crop { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
 .step-pip.awaiting_crop { background: var(--amber); }
 
+/* ── Preview strip (job cards) ──────────────────────────────────────────── */
+.preview-strip { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.preview-strip::-webkit-scrollbar { display: none; }
+.preview-thumb { flex: 0 0 auto; cursor: pointer; position: relative; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); background: var(--bg); transition: border-color 0.15s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
+.preview-thumb:active { transform: scale(0.96); }
+.preview-thumb img { display: block; width: 110px; height: 82px; object-fit: cover; }
+.preview-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.65); color: #fff; font-size: 0.62rem; font-family: var(--mono); text-align: center; padding: 3px 4px; letter-spacing: 0.04em; }
+
 /* ── Crop modal ─────────────────────────────────────────────────────────── */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 8000; align-items: center; justify-content: center; padding: 20px; }
 .modal-overlay.open { display: flex; }
@@ -519,11 +527,25 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--text-muted); }
 
 </div><!-- #app -->
 
+<!-- ── Preview lightbox ──────────────────────────────────────────────────── -->
+<div id="preview-lightbox" class="modal-overlay" onclick="if(event.target===this)closePreview()">
+  <div style="position:relative;text-align:center;">
+    <img id="preview-lbx-img" src="" alt="" style="max-width:88vw;max-height:78vh;border-radius:8px;display:block;">
+    <div id="preview-lbx-title" style="color:var(--text-muted);font-size:0.8rem;margin-top:10px;font-family:var(--mono);"></div>
+    <button onclick="closePreview()" style="position:absolute;top:-14px;right:-14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:50%;width:32px;height:32px;cursor:pointer;color:var(--text);font-size:1rem;display:flex;align-items:center;justify-content:center;">✕</button>
+  </div>
+</div>
+
 <!-- ── Crop modal ────────────────────────────────────────────────────────── -->
 <div id="crop-modal" class="modal-overlay" onclick="if(event.target===this)closeCropModal()">
   <div class="modal-box">
     <h3>Set Crop Region</h3>
     <p>Define the bounds for the Gaussian splat. Splats outside this region will be removed before export.</p>
+    <!-- Splat point cloud reference — populated by openCropModal when preview is available -->
+    <div id="crop-preview-block" style="display:none;margin-bottom:16px;">
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;font-family:var(--mono);">Point cloud — top-down XZ (use to estimate bounds)</div>
+      <img id="crop-preview-img" src="" alt="splat preview" style="width:100%;border-radius:6px;border:1px solid var(--border);">
+    </div>
     <div class="crop-mode-tabs">
       <button class="crop-mode-tab active" id="ctab-box"    onclick="setCropMode('box')">Box</button>
       <button class="crop-mode-tab"        id="ctab-sphere" onclick="setCropMode('sphere')">Sphere</button>
@@ -929,6 +951,7 @@ async function pollJob() {
     if (state.jobId !== jobIdAtDispatch) return;
     if (!data.ok) return;
     const job = data.job;
+    _jobsCache[job.job_id] = job;
     renderCaptureSteps(job.steps);
 
     const running = job.steps.find(s => s.status === 'running');
@@ -1025,6 +1048,9 @@ async function refreshJobs() {
   if (jobsTab === 'jobs') fetchAndRenderJobs();
 }
 
+// Cache of job objects by job_id — used by crop modal to show splat preview
+const _jobsCache = {};
+
 async function fetchAndRenderJobs() {
   const el = document.getElementById('jobs-list');
   try {
@@ -1034,6 +1060,7 @@ async function fetchAndRenderJobs() {
       el.innerHTML = '<div class="empty-state">No jobs yet</div>';
       return;
     }
+    data.jobs.forEach(j => { _jobsCache[j.job_id] = j; });
     el.innerHTML = data.jobs.map(job => renderJobCard(job)).join('');
   } catch (_) {
     el.innerHTML = '<div class="empty-state" style="color:var(--text-dim);">Could not reach server</div>';
@@ -1056,6 +1083,20 @@ function renderJobCard(job) {
     ? `<button class="btn btn-sm" style="background:var(--amber);color:#000;font-weight:700;margin-top:10px;width:100%;" onclick="openCropModal('${esc(job.job_id)}')">⧖ Set Crop Region →</button>`
     : '';
 
+  // Preview strip — shown for any completed preview stage
+  const previews = job.previews || {};
+  const base = serverUrl();
+  const jid  = esc(job.job_id);
+  const mkThumb = (key, label) => {
+    const f = previews[key];
+    if (!f) return '';
+    const url = `${base}/api/jobs/${jid}/previews/${f}`;
+    return `<div class="preview-thumb" onclick="openPreview('${url}','${label}')"><img src="${url}" loading="lazy"><div class="preview-label">${label}</div></div>`;
+  };
+  const previewHtml = (previews.capture || previews.colmap || previews.splat || previews.crop)
+    ? `<div class="preview-strip">${mkThumb('capture','Capture')}${mkThumb('colmap','COLMAP')}${mkThumb('splat','Splat')}${mkThumb('crop','Crop')}</div>`
+    : '';
+
   return `
     <div class="job-card">
       <div class="job-card-header">
@@ -1066,6 +1107,7 @@ function renderJobCard(job) {
         <div class="job-status-pill ${statusClass}">${job.status.replace('_', ' ')}</div>
       </div>
       <div class="step-progress">${stepsHtml}</div>
+      ${previewHtml}
       ${job.error ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--red);">${esc(job.error)}</div>` : ''}
       ${cropBtn}
     </div>
@@ -1113,7 +1155,30 @@ function openCropModal(jobId) {
   const btn = document.getElementById('crop-submit-btn');
   btn.disabled = false;
   btn.textContent = 'Apply Crop';
+
+  // Show splat point cloud preview for coordinate reference
+  const cached = _jobsCache[jobId];
+  const prevBlock = document.getElementById('crop-preview-block');
+  const prevImg   = document.getElementById('crop-preview-img');
+  if (cached && cached.previews && cached.previews.splat) {
+    prevImg.src = `${serverUrl()}/api/jobs/${jobId}/previews/${cached.previews.splat}`;
+    prevBlock.style.display = 'block';
+  } else {
+    prevBlock.style.display = 'none';
+  }
+
   document.getElementById('crop-modal').classList.add('open');
+}
+
+function openPreview(url, title) {
+  document.getElementById('preview-lbx-img').src   = url;
+  document.getElementById('preview-lbx-title').textContent = title;
+  document.getElementById('preview-lightbox').classList.add('open');
+}
+
+function closePreview() {
+  document.getElementById('preview-lightbox').classList.remove('open');
+  document.getElementById('preview-lbx-img').src = '';
 }
 
 function closeCropModal() {

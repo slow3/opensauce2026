@@ -140,6 +140,10 @@ class Job:
                                             # {"mode":"none"} = skip crop
         self.crop_event = threading.Event() # signalled when crop_config is set by staff
 
+        # Preview filenames — keyed by stage, value is filename relative to <project>/previews/
+        # e.g. {"capture": "capture.jpg", "colmap": "colmap.svg", "splat": "splat.svg"}
+        self.previews: dict = {}
+
         step_ids = _steps_for(mode, rig)
         self.steps = {s: StepStatus.WAITING for s in step_ids}
 
@@ -162,6 +166,7 @@ class Job:
             "outputs":     self.outputs,
             "error":       self.error,
             "crop_config": self.crop_config,
+            "previews":    self.previews,
             "steps": [
                 {
                     "id":     s,

@@ -43,11 +43,15 @@ def _make_env(extra_path_dirs: list[str] = None) -> dict:
 
 
 def _run(cmd: list[str], cwd: Optional[str] = None, timeout: int = 3600,
-         extra_path_dirs: list[str] = None) -> subprocess.CompletedProcess:
+         extra_path_dirs: list[str] = None,
+         hide_window: bool = False) -> subprocess.CompletedProcess:
     log.info(f"$ {' '.join(str(c) for c in cmd)}")
     env = _make_env(extra_path_dirs)
+    # CREATE_NO_WINDOW (0x08000000) keeps GUI apps from flashing a window on screen.
+    # Safe on Windows; ignored on other platforms via the hasattr guard.
+    flags = subprocess.CREATE_NO_WINDOW if hide_window and hasattr(subprocess, "CREATE_NO_WINDOW") else 0
     return subprocess.run(cmd, capture_output=True, text=True, cwd=cwd,
-                          timeout=timeout, env=env)
+                          timeout=timeout, env=env, creationflags=flags)
 
 
 # ── PLY crop helpers ──────────────────────────────────────────────────────────
@@ -97,6 +101,173 @@ def _crop_ply_sphere(src: str, dst: str, center: list, radius: float):
     log.info(f"Sphere crop: {int(mask.sum())}/{len(mask)} Gaussians kept")
 
 
+# ── preview generation helpers ────────────────────────────────────────────────
+
+def _preview_dir(job: Job) -> str:
+    d = os.path.join(job.project_dir, "previews")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _scatter_svg(xs: list, ys: list, *, width=320, height=200,
+                 dot_r=1.5, color="#1D9E75", bg="#0a0a0f",
+                 box=None, title="") -> str:
+    """Minimal SVG scatter plot (top-down projection).
+
+    box: (x_min, y_min, x_max, y_max) in data coordinates — drawn as amber dashed rect.
+    """
+    if not xs:
+        return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+                f'style="background:{bg};border-radius:6px"></svg>')
+    pad = 14
+    mn_x, mx_x = min(xs), max(xs)
+    mn_y, mx_y = min(ys), max(ys)
+    span_x = mx_x - mn_x or 1.0
+    span_y = mx_y - mn_y or 1.0
+    W, H = width - 2 * pad, height - 2 * pad
+
+    def tx(v): return pad + (v - mn_x) / span_x * W
+    def ty(v): return height - pad - (v - mn_y) / span_y * H
+
+    dots = "".join(
+        f'<circle cx="{tx(x):.1f}" cy="{ty(y):.1f}" r="{dot_r}" '
+        f'fill="{color}" fill-opacity="0.6"/>'
+        for x, y in zip(xs, ys)
+    )
+    box_svg = ""
+    if box:
+        bx0, by0, bx1, by1 = box
+        sx0, sy0 = tx(bx0), ty(by1)
+        sx1, sy1 = tx(bx1), ty(by0)
+        bw, bh = sx1 - sx0, sy1 - sy0
+        box_svg = (f'<rect x="{sx0:.1f}" y="{sy0:.1f}" width="{max(bw,1):.1f}" height="{max(bh,1):.1f}" '
+                   f'fill="#EF9F2720" stroke="#EF9F27" stroke-width="1.5" stroke-dasharray="5,3"/>')
+
+    title_svg = (f'<text x="{width//2}" y="11" text-anchor="middle" '
+                 f'font-family="sans-serif" font-size="9" fill="#666">{title}</text>') if title else ""
+
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+            f'style="background:{bg};border-radius:6px">'
+            f'{title_svg}{dots}{box_svg}</svg>')
+
+
+def _quat_to_center(qw, qx, qy, qz, tx, ty, tz):
+    """Convert COLMAP quaternion + translation to camera center in world space."""
+    r00 = 1 - 2*(qy*qy + qz*qz);  r10 = 2*(qx*qy + qz*qw);  r20 = 2*(qx*qz - qy*qw)
+    r01 = 2*(qx*qy - qz*qw);       r11 = 1 - 2*(qx*qx + qz*qz); r21 = 2*(qy*qz + qx*qw)
+    r02 = 2*(qx*qz + qy*qw);       r12 = 2*(qy*qz - qx*qw);  r22 = 1 - 2*(qx*qx + qy*qy)
+    cx = -(r00*tx + r10*ty + r20*tz)
+    cy = -(r01*tx + r11*ty + r21*tz)
+    cz = -(r02*tx + r12*ty + r22*tz)
+    return cx, cy, cz
+
+
+def _read_colmap_images_bin(path: str) -> list:
+    """Parse COLMAP images.bin → list of (cx, cy, cz) camera world positions."""
+    import struct
+    centers = []
+    with open(path, "rb") as f:
+        num = struct.unpack("<Q", f.read(8))[0]
+        for _ in range(num):
+            f.read(4)                                         # IMAGE_ID
+            qw, qx, qy, qz = struct.unpack("<dddd", f.read(32))
+            tx, ty, tz      = struct.unpack("<ddd",  f.read(24))
+            f.read(4)                                         # CAMERA_ID
+            while f.read(1) != b"\x00":                      # null-terminated name
+                pass
+            num_pts = struct.unpack("<Q", f.read(8))[0]
+            f.read(num_pts * 24)                              # skip POINTS2D (x,y,id)
+            centers.append(_quat_to_center(qw, qx, qy, qz, tx, ty, tz))
+    return centers
+
+
+def _save_capture_preview(job: Job, photos_dir: str):
+    """Copy (and thumbnail) the middle camera image as previews/capture.jpg."""
+    IMAGE_EXTS = {".jpg", ".jpeg", ".tiff", ".tif", ".png"}
+    imgs = sorted(p for p in Path(photos_dir).iterdir()
+                  if p.suffix.lower() in IMAGE_EXTS)
+    if not imgs:
+        return
+    mid = imgs[len(imgs) // 2]
+    dest = os.path.join(_preview_dir(job), "capture.jpg")
+    try:
+        from PIL import Image as PILImage
+        img = PILImage.open(str(mid))
+        img.thumbnail((960, 720))
+        img.convert("RGB").save(dest, "JPEG", quality=82)
+    except Exception:
+        shutil.copy2(str(mid), dest)
+    job.previews["capture"] = "capture.jpg"
+    log.info(f"[{job.job_id}] Capture preview → {dest}")
+
+
+def _save_colmap_preview(job: Job, sparse_dir: str):
+    """Render COLMAP camera positions as a top-down SVG scatter."""
+    bin_path = os.path.join(sparse_dir, "0", "images.bin")
+    if not os.path.exists(bin_path):
+        return
+    try:
+        centers = _read_colmap_images_bin(bin_path)
+        if not centers:
+            return
+        xs = [c[0] for c in centers]
+        zs = [c[2] for c in centers]
+        svg = _scatter_svg(xs, zs, width=320, height=200, dot_r=3,
+                           color="#1D9E75", title=f"COLMAP — {len(centers)} cameras")
+        dest = os.path.join(_preview_dir(job), "colmap.svg")
+        with open(dest, "w") as f:
+            f.write(svg)
+        job.previews["colmap"] = "colmap.svg"
+        log.info(f"[{job.job_id}] COLMAP preview → {dest} ({len(centers)} cameras)")
+    except Exception as e:
+        log.warning(f"[{job.job_id}] COLMAP preview failed (non-fatal): {e}")
+
+
+def _save_splat_preview(job: Job, box: dict = None):
+    """Render raw .ply as a top-down XZ scatter SVG.
+
+    box: job.crop_config dict (optional) — draws the crop region as an amber overlay.
+    """
+    raw_ply = job.outputs.get("raw_ply")
+    if not raw_ply or not os.path.exists(raw_ply):
+        return
+    try:
+        from plyfile import PlyData
+        import numpy as np
+        verts = PlyData.read(raw_ply)["vertex"]
+        n = len(verts)
+        step = max(1, n // 5000)
+        xs = np.array(verts["x"][::step], dtype=float).tolist()
+        zs = np.array(verts["z"][::step], dtype=float).tolist()
+
+        box_2d = None
+        fname  = "splat.svg"
+        title  = "Splat — top-down XZ"
+        if box:
+            mode = box.get("mode", "none")
+            if mode == "box":
+                mn, mx = box["min"], box["max"]
+                box_2d = (mn[0], mn[2], mx[0], mx[2])
+                fname  = "crop.svg"
+                title  = f"Crop (box) — top-down XZ"
+            elif mode == "sphere":
+                c, r = box["center"], float(box["radius"])
+                box_2d = (c[0]-r, c[2]-r, c[0]+r, c[2]+r)
+                fname  = "crop.svg"
+                title  = f"Crop (sphere r={r:.2f})"
+
+        svg = _scatter_svg(xs, zs, width=320, height=200, dot_r=1.2,
+                           color="#1D9E75", box=box_2d, title=title)
+        dest = os.path.join(_preview_dir(job), fname)
+        with open(dest, "w") as f:
+            f.write(svg)
+        key = "crop" if box else "splat"
+        job.previews[key] = fname
+        log.info(f"[{job.job_id}] {'Crop' if box else 'Splat'} preview → {dest}")
+    except Exception as e:
+        log.warning(f"[{job.job_id}] Splat preview failed (non-fatal): {e}")
+
+
 # ── individual steps ─────────────────────────────────────────────────────────
 
 def step_receive_images(job: Job, src_folder: str, config: dict) -> str:
@@ -135,6 +306,7 @@ def step_receive_images(job: Job, src_folder: str, config: dict) -> str:
 
     log.info(f"Received {moved}/{expected} images → {photos_dir}")
     job.project_dir = project_dir
+    _save_capture_preview(job, photos_dir)
     return project_dir
 
 
@@ -184,6 +356,7 @@ def step_colmap(job: Job, config: dict):
     subdirs = [d for d in Path(sparse_dir).iterdir() if d.is_dir()]
     if not subdirs:
         raise RuntimeError(f"COLMAP mapper produced no sparse reconstruction in {sparse_dir}")
+    _save_colmap_preview(job, sparse_dir)
 
 
 def step_lichtfeld(job: Job, config: dict):
@@ -208,18 +381,21 @@ def step_lichtfeld(job: Job, config: dict):
         "--data-path",   colmap_dir,
         "--output-path", splats_dir,
         "--iter",        str(iterations),
-        "--headless",
-        "--undistort",
     ]
 
-    result = _run(cmd, timeout=7200)
+    result = _run(cmd, timeout=7200, hide_window=True)
     if result.returncode != 0:
-        raise RuntimeError(f"LichtFeld failed:\n{result.stderr}")
+        raise RuntimeError(
+            f"LichtFeld failed (rc={result.returncode}):\n"
+            f"stdout: {result.stdout[-2000:] if result.stdout else '(empty)'}\n"
+            f"stderr: {result.stderr[-2000:] if result.stderr else '(empty)'}"
+        )
 
     plys = sorted(Path(splats_dir).glob("*.ply"), key=lambda p: p.stat().st_mtime)
     if not plys:
         raise RuntimeError(f"LichtFeld finished but no .ply found in {splats_dir} — check logs")
     job.outputs["raw_ply"] = str(plys[-1])
+    _save_splat_preview(job)
 
 
 def step_crop_splat(job: Job, config: dict):
@@ -279,6 +455,7 @@ def step_crop_splat(job: Job, config: dict):
         return
 
     job.outputs["cropped_ply"] = cropped_ply
+    _save_splat_preview(job, box=crop)
     log.info(f"[{job.job_id}] Manual crop ({crop_mode}) → {cropped_ply}")
 
 
@@ -328,44 +505,202 @@ def step_compress_splat(job: Job, config: dict):
         log.warning(f"Viewer HTML export failed (non-fatal): {result_html.stderr}")
 
 
-def step_autorc_mesh(job: Job, config: dict):
-    """
-    Run AutoRC for mesh reconstruction (RIG 2 only).
-    AutoRC has no CLI — we write a config pointing at this job's Photos dir,
-    then launch the exe and watch for output in the Models folder.
-    """
-    import json, time
+def _write_simplify_params(project_dir: str, count: int) -> str:
+    """Write a temporary RealityCapture simplify params XML for the given triangle count.
 
-    autorc_exe    = config["paths"]["autorc_exe"]
-    autorc_dir    = os.path.dirname(autorc_exe)
-    settings_path = os.path.join(autorc_dir, "data", "settings", "autorc.json")
-    preset_path   = config["paths"]["autorc_preset"]
-    models_dir    = os.path.join(job.project_dir, "Models")
+    Uses the same format as the AutoRC PowerShell scripts (simplify-400k-params.xml etc.).
+    mvsFltSimplificationType 0 = absolute triangle count.
+    """
+    import uuid
+    cfg_id = str(uuid.uuid4()).upper()
+    xml = (
+        f'<Configuration id="{{{cfg_id}}}">\n'
+        f'  <entry key="mvsFltSimplificationType" value="0"/>\n'
+        f'  <entry key="mvsFltTargetTrisCountAbs" value="{count}"/>\n'
+        f'  <entry key="mvsFltBorderDecimationStyle" value="1"/>\n'
+        f'  <entry key="simplPreserveParts" value="2"/>\n'
+        f'</Configuration>'
+    )
+    path = os.path.join(project_dir, f"simplify-{count}-params.xml")
+    with open(path, "w") as f:
+        f.write(xml)
+    return path
+
+
+def step_rc_mesh(job: Job, config: dict):
+    """Run RealityCapture headlessly via CLI to produce a textured mesh.
+
+    Direct replacement for AutoRC. Uses the exact CLI flag sequence confirmed
+    from AutoRC's _AutoRC_Create.ps1 PowerShell source.
+
+    Workflow:
+      addFolder → detectMarkers → align → [importGCP → update] →
+      selectMaximalComponent → setReconstructionRegion →
+      calculateHighModel → removeMarginalTriangles →
+      simplify(web_lod) → unwrap → calculateTexture → export FBX →
+      selectHigh → simplify(print_lod) → unwrap → reprojectTexture → export OBJ →
+      save → quit
+
+    Outputs stored in job.outputs:
+      "mesh_fbx"  — web LOD FBX  (passed to Prusa handoff / email)
+      "mesh_obj"  — print LOD OBJ (lower triangle count, Prusa-ready)
+      "mesh_high" — full-res FBX  (archive, skipped if rc_skip_highpoly=true)
+      "rc_project"— .rcproj path
+
+    config["paths"]["rc_exe"]             — path to RealityCapture.exe
+    config["rc"]["markers_params"]         — markers-params.xml path
+    config["rc"]["gcp_params"]            — gcp-params.xml path (optional)
+    config["rc"]["reproject_params"]      — reproject-params.xml path
+    config["rc"]["unwrap_params"]         — unwrap-params.xml path
+    config["rc"]["reconstruction_region"] — .rcbox path (optional, falls back to auto)
+    config["rc"]["gcp_file"]             — GCP CSV path (optional, skipped if empty)
+    config["rc"]["web_lod_count"]        — triangle count for web/email LOD (default 500000)
+    config["rc"]["print_lod_count"]      — triangle count for print LOD (default 100000)
+    config["rc"]["skip_highpoly_export"] — bool, skip exporting the full-res mesh (default false)
+    config["rc"]["detail"]               — "high" | "normal" | "preview" (default "high")
+    """
+    rc_exe  = config["paths"]["rc_exe"]
+    rc_cfg  = config.get("rc", {})
+
+    # Default param file locations from the AutoRC data directory
+    autorc_settings = config["paths"].get(
+        "autorc_data_dir",
+        "D:\\Reconstructions\\20221223-AutoRC\\data\\settings"
+    )
+
+    markers_params        = rc_cfg.get("markers_params",
+                            os.path.join(autorc_settings, "markers-params.xml"))
+    gcp_params            = rc_cfg.get("gcp_params",
+                            os.path.join(autorc_settings, "gcp-params.xml"))
+    reproject_params      = rc_cfg.get("reproject_params",
+                            os.path.join(autorc_settings, "reproject-params.xml"))
+    unwrap_params         = rc_cfg.get("unwrap_params",
+                            os.path.join(autorc_settings, "unwrap-params.xml"))
+    reconstruction_region = rc_cfg.get("reconstruction_region", "")
+    gcp_file              = rc_cfg.get("gcp_file", "")
+    web_lod_count         = int(rc_cfg.get("web_lod_count",   500_000))
+    print_lod_count       = int(rc_cfg.get("print_lod_count", 100_000))
+    skip_highpoly_export  = rc_cfg.get("skip_highpoly_export", False)
+    detail                = rc_cfg.get("detail", "high")  # high | normal | preview
+
+    # Detail → RC CLI command
+    detail_cmd = {
+        "high":    "-calculateHighModel",
+        "normal":  "-calculateNormalModel",
+        "preview": "-calculatePreviewModel",
+    }.get(detail, "-calculateHighModel")
+
+    # Paths
+    images_dir   = os.path.join(job.project_dir, "colmap", "images")
+    models_dir   = os.path.join(job.project_dir, "Models")
+    project_path = os.path.join(job.project_dir, f"{job.job_id}.rcproj")
     os.makedirs(models_dir, exist_ok=True)
 
-    with open(settings_path) as f:
-        settings = json.load(f)
+    # Model names
+    name_high  = f"{job.job_id}_High"
+    name_web   = f"{job.job_id}_{web_lod_count // 1000}k"
+    name_print = f"{job.job_id}_{print_lod_count // 1000}k"
 
-    settings["General"]["Preset_Name"] = "opensauce-2026"
-    settings["General"]["Preset_Path"] = preset_path
+    path_high  = os.path.join(models_dir, name_high  + ".fbx")
+    path_web   = os.path.join(models_dir, name_web   + ".fbx")
+    path_print = os.path.join(models_dir, name_print + ".obj")
 
-    with open(settings_path, "w") as f:
-        json.dump(settings, f, indent=2)
+    # Simplify params XMLs (generated from our triangle counts)
+    simplify_web   = _write_simplify_params(job.project_dir, web_lod_count)
+    simplify_print = _write_simplify_params(job.project_dir, print_lod_count)
 
-    proc = subprocess.Popen([autorc_exe], cwd=autorc_dir)
+    # ── Build CLI command sequence ─────────────────────────────────────────
+    cmd = [
+        rc_exe,
+        "-set", "appIncSubdirs=true",
+        "-addFolder", images_dir,
+    ]
 
-    deadline = time.time() + 7200
-    while time.time() < deadline:
-        fbx_files = list(Path(models_dir).glob("*.fbx"))
-        if fbx_files:
-            log.info(f"AutoRC produced {len(fbx_files)} model(s)")
-            job.outputs["mesh_fbx"] = str(fbx_files[0])
-            proc.terminate()
-            return
-        time.sleep(30)
+    # Marker detection (skip gracefully if XML missing)
+    if os.path.exists(markers_params):
+        cmd += ["-detectMarkers", markers_params]
+    else:
+        log.warning("markers-params.xml not found — skipping marker detection")
 
-    proc.terminate()
-    raise RuntimeError("AutoRC timed out — no FBX produced after 2 hours")
+    cmd += ["-align"]
+
+    # GCP import (optional — skip if no file configured)
+    if gcp_file and os.path.exists(gcp_file):
+        cmd += ["-importGroundControlPoints", gcp_file, gcp_params, "-update"]
+    elif gcp_file:
+        log.warning(f"GCP file not found: {gcp_file} — skipping GCP import")
+
+    cmd += ["-selectMaximalComponent"]
+
+    # Reconstruction region
+    if reconstruction_region and os.path.exists(reconstruction_region):
+        cmd += ["-setReconstructionRegion", reconstruction_region]
+    else:
+        log.info("No reconstruction region configured — RC will use auto bounds")
+
+    # High-poly reconstruction + clean up marginal triangles
+    cmd += [
+        detail_cmd,
+        "-selectMarginalTriangles", "-removeSelectedTriangles",
+        "-renameSelectedModel", name_high,
+        "-save", project_path,
+    ]
+
+    # ── Web LOD: simplify → unwrap → texture → export FBX ─────────────────
+    cmd += [
+        "-selectModel",        name_high,
+        "-simplify",           simplify_web,
+        "-renameSelectedModel", name_web,
+        "-cleanModel", "-closeHoles",
+        "-unwrap",             unwrap_params,
+        "-calculateTexture",
+        "-exportModel",        name_web, path_web,
+        "-save",               project_path,
+    ]
+
+    # ── Print LOD: simplify → unwrap → reproject from web LOD → export OBJ ─
+    cmd += [
+        "-selectModel",        name_high,
+        "-simplify",           simplify_print,
+        "-renameSelectedModel", name_print,
+        "-unwrap",             unwrap_params,
+        "-reprojectTexture",   name_web, name_print, reproject_params,
+        "-selectModel",        name_print,
+        "-exportModel",        name_print, path_print,
+        "-save",               project_path,
+    ]
+
+    # ── Optional full-res archive export ──────────────────────────────────
+    if not skip_highpoly_export:
+        cmd += [
+            "-selectModel", name_high,
+            "-exportModel", name_high, path_high,
+            "-save",        project_path,
+        ]
+
+    cmd += ["-quit"]
+
+    # ── Run RC ─────────────────────────────────────────────────────────────
+    log.info(f"[{job.job_id}] Starting RealityCapture ({detail} detail, "
+             f"web={web_lod_count//1000}k, print={print_lod_count//1000}k)")
+    result = _run(cmd, timeout=7200)
+    if result.returncode != 0:
+        raise RuntimeError(f"RealityCapture failed (rc={result.returncode}):\n{result.stderr}")
+
+    # Verify output
+    produced = [p for p in (path_web, path_print, path_high) if os.path.exists(p)]
+    if not produced:
+        raise RuntimeError(
+            f"RealityCapture exited cleanly but no model files found in {models_dir}. "
+            f"Check the RC log for errors.")
+
+    job.outputs["mesh_fbx"]   = path_web    # Prusa handoff + email attachment
+    job.outputs["mesh_obj"]   = path_print  # print-ready OBJ
+    job.outputs["rc_project"] = project_path
+    if os.path.exists(path_high):
+        job.outputs["mesh_high"] = path_high
+
+    log.info(f"[{job.job_id}] RC mesh complete: {len(produced)} model(s) → {models_dir}")
 
 
 def step_prusa_handoff(job: Job, config: dict):
@@ -443,7 +778,7 @@ def run_rig2_pipeline(job: Job, src_folder: str, config: dict):
     try:
         _run_step(job, "images_received", step_receive_images, job, src_folder, config)
         _run_step(job, "colmap_align",    step_colmap,         job, config)
-        _run_step(job, "autorc_mesh",     step_autorc_mesh,    job, config)
+        _run_step(job, "autorc_mesh",     step_rc_mesh,        job, config)
         _run_step(job, "lichtfeld_splat", step_lichtfeld,      job, config)
         _run_step(job, "splat_crop",      step_crop_splat,     job, config)
         _run_step(job, "splat_compress",  step_compress_splat, job, config)
@@ -476,21 +811,13 @@ def run_splat_pipeline(job: Job, src_folder: str, config: dict, send_email: bool
 
 
 def run_mesh_pipeline(job: Job, src_folder: str, config: dict):
-    """Mesh only: images → AutoRC mesh → email."""
+    """Mesh only: images → RC mesh → email."""
     log.info(f"[{job.job_id}] Starting MESH pipeline for {job.guest.get('name')}")
     job.status = JobStatus.RUNNING
 
-    # Mesh needs a project dir even though we skip COLMAP
-    job.project_dir = _project_dir(
-        config["paths"]["projects_root"],
-        job.session_id,
-        job.guest.get("name", "guest"),
-    )
-    os.makedirs(job.project_dir, exist_ok=True)
-
     try:
         _run_step(job, "images_received", step_receive_images, job, src_folder, config)
-        _run_step(job, "autorc_mesh",     step_autorc_mesh,    job, config)
+        _run_step(job, "autorc_mesh",     step_rc_mesh,        job, config)
         _run_step(job, "email_delivery",  step_email,          job, config)
         job.status = JobStatus.COMPLETED
         log.info(f"[{job.job_id}] MESH pipeline complete")

@@ -6,13 +6,31 @@
   "paths": {
     "projects_root": "E:\\Scan The Wild\\projects",
     "camera2cloud_drop": "E:\\Scan The Wild\\incoming",
-    "autorc_exe": "D:\\Reconstructions\\20221223-AutoRC\\autorc.exe",
-    "autorc_preset": "D:\\Reconstructions\\20221223-AutoRC\\data\\presets\\opensauce-2026",
+    "rc_exe": "C:\\Program Files\\Capturing Reality\\RealityCapture\\RealityCapture.exe",
+    "autorc_data_dir": "D:\\Reconstructions\\20221223-AutoRC\\data\\settings",
+    "_autorc_note": "autorc_exe/autorc_preset are no longer used — runner.py calls rc_exe directly",
     "colmap_exe": "C:\\Users\\Winslow\\COLMAP-3.8-windows-cuda\\bin\\colmap.exe",
     "_colmap_note": "lib/ dir is auto-injected into PATH by runner.py — do not use COLMAP.bat",
     "lichtfeld_exe": "C:\\Users\\Winslow\\AppData\\Local\\LichtFeld Studio\\bin\\LichtFeld-Studio.exe",
     "rcbox_file": "E:\\Scan The Wild\\calibration\\opensauce-2026.rcbox",
     "splat_transform": "splat-transform"
+  },
+
+  "rc": {
+    "_note": "RealityCapture CLI settings for Rig 2 mesh reconstruction (step_rc_mesh)",
+    "markers_params":        "D:\\Reconstructions\\20221223-AutoRC\\data\\settings\\markers-params.xml",
+    "gcp_params":            "D:\\Reconstructions\\20221223-AutoRC\\data\\settings\\gcp-params.xml",
+    "reproject_params":      "D:\\Reconstructions\\20221223-AutoRC\\data\\settings\\reproject-params.xml",
+    "unwrap_params":         "D:\\Reconstructions\\20221223-AutoRC\\data\\settings\\unwrap-params.xml",
+    "reconstruction_region": "E:\\Scan The Wild\\calibration\\opensauce-2026-rig2.rcbox",
+    "_region_note": "Leave reconstruction_region blank to let RC compute auto bounds",
+    "gcp_file":              "",
+    "_gcp_note": "Set to a CSV path if coded markers + GCP survey are used for Rig 2",
+    "detail":                "high",
+    "_detail_note": "high | normal | preview — maps to -calculateHighModel etc.",
+    "web_lod_count":         500000,
+    "print_lod_count":       100000,
+    "skip_highpoly_export":  false
   },
 
   "server": {

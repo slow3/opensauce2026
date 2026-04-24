@@ -11,7 +11,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 
 from pipeline.job_manager import job_manager, PipelineMode
@@ -178,6 +178,21 @@ def set_crop(job_id: str):
     job.crop_event.set()  # unblock the pipeline thread in step_crop_splat
     log.info(f"Crop config set for job {job_id}: mode={mode}")
     return jsonify({"ok": True, "job_id": job_id, "crop_mode": mode})
+
+
+@app.get("/api/jobs/<job_id>/previews/<filename>")
+def job_preview(job_id: str, filename: str):
+    """Serve a preview image/SVG from the job's previews/ subdirectory."""
+    import re
+    if not re.match(r"^[\w\-. ]+$", filename):
+        return jsonify({"ok": False, "error": "Invalid filename"}), 400
+    job = job_manager.get(job_id)
+    if not job or not job.project_dir:
+        return jsonify({"ok": False, "error": "Not found"}), 404
+    path = os.path.join(job.project_dir, "previews", filename)
+    if not os.path.exists(path):
+        return jsonify({"ok": False, "error": "Preview not ready"}), 404
+    return send_file(path)
 
 
 @app.post("/api/run")
