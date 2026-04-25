@@ -46,7 +46,9 @@
     "smtp_port": 587,
     "sender_email": "noreply-bot@forager.earth",
     "sender_name": "Scan The Wild",
-    "use_tls": true
+    "use_tls": true,
+    "smtp_password": "",
+    "_smtp_password_note": "Gmail App Password (16-char, no spaces). Generate at myaccount.google.com/apppasswords. Required for SMTP auth — leave blank to skip email silently."
   },
 
   "pipeline": {
