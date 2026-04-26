@@ -796,20 +796,20 @@ def step_rc_mesh(job: Job, config: dict):
 
 
 def step_prusa_handoff(job: Job, config: dict):
-    """Copy the mesh FBX to a Prusa-monitored hot folder (RIG 2 only)."""
-    mesh_fbx  = job.outputs.get("mesh_fbx")
+    """Copy the print-LOD OBJ to a PrusaSlicer-monitored hot folder (RIG 2 only)."""
+    mesh_obj  = job.outputs.get("mesh_obj")
     prusa_dir = config["paths"].get("prusa_hotfolder", "")
 
-    if not mesh_fbx:
-        raise RuntimeError("No mesh FBX for Prusa handoff")
+    if not mesh_obj:
+        raise RuntimeError("No mesh OBJ for Prusa handoff")
     if not prusa_dir:
         log.warning("No prusa_hotfolder configured — skipping Prusa handoff")
         return
 
     os.makedirs(prusa_dir, exist_ok=True)
-    dest = os.path.join(prusa_dir, os.path.basename(mesh_fbx))
-    shutil.copy2(mesh_fbx, dest)
-    log.info(f"Sent to Prusa hot folder: {dest}")
+    dest = os.path.join(prusa_dir, os.path.basename(mesh_obj))
+    shutil.copy2(mesh_obj, dest)
+    log.info(f"[{job.job_id}] Sent to Prusa hot folder: {dest}")
     job.outputs["prusa_file"] = dest
 
 

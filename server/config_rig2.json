@@ -2,6 +2,8 @@
   "rig": 2,
   "rig_label": "Turntable",
   "station_id": "PC2",
+  "allow_any_rig": false,
+  "_allow_any_rig_note": "Set true on test PCs to accept registrations for any rig. Set false on production PCs.",
 
   "paths": {
     "projects_root": "E:\\Scan The Wild\\projects",

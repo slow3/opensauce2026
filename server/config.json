@@ -2,6 +2,8 @@
   "rig": 1,
   "rig_label": "Human Splat",
   "station_id": "PC1",
+  "allow_any_rig": true,
+  "_allow_any_rig_note": "Set true on test PCs to accept registrations for any rig. Set false on production PCs.",
 
   "paths": {
     "projects_root": "E:\\Scan The Wild\\projects",

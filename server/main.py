@@ -85,7 +85,7 @@ def register():
     if not session_id or not rig or not guest.get("name"):
         return jsonify({"ok": False, "error": "Missing required fields"}), 400
 
-    if rig != RIG:
+    if rig != RIG and not CONFIG.get("allow_any_rig", False):
         return jsonify({
             "ok": False,
             "error": f"This PC handles RIG {RIG} only. Guest selected RIG {rig}."
