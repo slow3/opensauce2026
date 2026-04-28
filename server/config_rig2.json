@@ -36,6 +36,8 @@
     "_gcp_note": "Set to a CSV path if coded markers + GCP survey are used for Rig 2",
     "detail":                "high",
     "_detail_note": "high | normal | preview — maps to -calculateHighModel etc.",
+    "rc_timeout":            14400,
+    "_rc_timeout_note": "Seconds allowed for the full RC run. High-detail on 288 photos needs >2h; default 14400 (4h).",
     "web_lod_count":         500000,
     "print_lod_count":       100000,
     "skip_highpoly_export":  false

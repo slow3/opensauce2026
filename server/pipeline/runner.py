@@ -674,6 +674,7 @@ def step_rc_mesh(job: Job, config: dict):
     print_lod_count       = int(rc_cfg.get("print_lod_count", 100_000))
     skip_highpoly_export  = rc_cfg.get("skip_highpoly_export", False)
     detail                = rc_cfg.get("detail", "high")  # high | normal | preview
+    rc_timeout            = int(rc_cfg.get("rc_timeout", 14400))  # seconds; high-detail on 288 photos needs >2h
 
     # Detail -> RC CLI command
     detail_cmd = {
@@ -775,7 +776,7 @@ def step_rc_mesh(job: Job, config: dict):
     # ── Run RC ─────────────────────────────────────────────────────────────
     log.info(f"[{job.job_id}] Starting RealityCapture ({detail} detail, "
              f"web={web_lod_count//1000}k, print={print_lod_count//1000}k)")
-    result = _run(cmd, timeout=7200)
+    result = _run(cmd, timeout=rc_timeout)
     if result.returncode != 0:
         raise RuntimeError(f"RealityCapture failed (rc={result.returncode}):\n{result.stderr}")
 
