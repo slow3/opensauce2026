@@ -262,6 +262,29 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--text-muted); }
 .xyz-row .field { flex: 1; margin-bottom: 0; }
 .xyz-row .field label { font-size: 0.75rem; text-align: center; }
 .crop-skip-notice { background: var(--surface2); border-radius: 8px; padding: 16px; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px; }
+
+/* ── Admin setup panel ─────────────────────────────────────────────────── */
+#admin-panel { display: none; position: fixed; inset: 0; background: #000000cc; z-index: 1000; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 24px 16px; }
+#admin-panel.open { display: flex; }
+.admin-box { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 24px; width: 100%; max-width: 480px; margin: auto; }
+.admin-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.admin-section:last-of-type { border-bottom: none; margin-bottom: 4px; }
+.admin-section-label { font-family: var(--mono); font-size: 0.68rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); margin-bottom: 12px; }
+.admin-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; min-height: 36px; }
+.admin-key { font-size: 0.875rem; color: var(--text-muted); white-space: nowrap; }
+.admin-num { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--mono); font-size: 0.82rem; padding: 6px 10px; outline: none; text-align: right; -moz-appearance: textfield; }
+.admin-num::-webkit-inner-spin-button { opacity: 0.4; }
+.admin-num:focus { border-color: var(--teal); }
+.admin-num-wrap { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-dim); }
+.seg-ctrl { display: flex; gap: 4px; }
+.seg-ctrl button { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 6px; color: var(--text-muted); font-family: var(--mono); font-size: 0.75rem; padding: 6px 11px; cursor: pointer; transition: background 0.12s, border-color 0.12s, color 0.12s; }
+.seg-ctrl button.active { background: var(--teal); border-color: var(--teal); color: #fff; font-weight: 600; }
+.seg-ctrl button:active { opacity: 0.8; }
+.toggle-btn { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 6px; color: var(--text-muted); font-family: var(--mono); font-size: 0.75rem; padding: 6px 14px; cursor: pointer; transition: all 0.12s; min-width: 52px; text-align: center; }
+.toggle-btn.on { background: var(--teal); border-color: var(--teal); color: #fff; }
+#admin-status { font-family: var(--mono); font-size: 0.78rem; color: var(--text-muted); min-height: 16px; margin-bottom: 4px; }
+.admin-actions { display: flex; gap: 10px; }
+.admin-actions .btn { flex: 1; }
 </style>
 </head>
 <body>
@@ -612,7 +635,109 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--text-muted); }
       <span>Debug mode</span>
       <button class="dbtn" id="diag-debug-btn" onclick="toggleDebugMode()" style="font-family:var(--mono);font-size:0.75rem;">OFF</button>
     </div>
+    <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:12px;" onclick="openAdmin()">Admin Setup</button>
     <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="closeDiag()">Close</button>
+  </div>
+</div>
+
+<!-- ── Admin setup panel ──────────────────────────────────────────────── -->
+<div id="admin-panel">
+  <div class="admin-box">
+    <h3 style="margin-bottom:4px;">Admin Setup</h3>
+    <p style="font-size:0.85rem;margin-bottom:20px;">Pipeline settings for next scan series</p>
+
+    <!-- RealityCapture (Rig 2) -->
+    <div class="admin-section">
+      <div class="admin-section-label">RealityCapture — Rig 2</div>
+
+      <div class="admin-row">
+        <span class="admin-key">Detail</span>
+        <div class="seg-ctrl" id="rc-detail">
+          <button data-val="preview">Preview</button>
+          <button data-val="normal">Normal</button>
+          <button data-val="high">High</button>
+        </div>
+      </div>
+
+      <div class="admin-row">
+        <span class="admin-key">Timeout</span>
+        <div class="admin-num-wrap">
+          <input class="admin-num" type="number" id="rc-timeout-h" min="0.5" max="12" step="0.5" style="width:64px">
+          <span>hours</span>
+        </div>
+      </div>
+
+      <div class="admin-row">
+        <span class="admin-key">Web LOD</span>
+        <div class="admin-num-wrap">
+          <input class="admin-num" type="number" id="rc-web-lod" min="50" max="2000" step="50" style="width:70px">
+          <span>k tris</span>
+        </div>
+      </div>
+
+      <div class="admin-row">
+        <span class="admin-key">Print LOD</span>
+        <div class="admin-num-wrap">
+          <input class="admin-num" type="number" id="rc-print-lod" min="10" max="500" step="10" style="width:70px">
+          <span>k tris</span>
+        </div>
+      </div>
+
+      <div class="admin-row">
+        <span class="admin-key">Skip highpoly</span>
+        <button class="toggle-btn" id="rc-skip-highpoly">OFF</button>
+      </div>
+    </div>
+
+    <!-- LichtFeld -->
+    <div class="admin-section">
+      <div class="admin-section-label">LichtFeld Studio — Rig 1 &amp; 2</div>
+
+      <div class="admin-row">
+        <span class="admin-key">Iterations</span>
+        <div class="admin-num-wrap">
+          <input class="admin-num" type="number" id="lf-iterations" min="1000" max="50000" step="1000" style="width:84px">
+        </div>
+      </div>
+
+      <div class="admin-row">
+        <span class="admin-key">Strategy</span>
+        <div class="seg-ctrl" id="lf-strategy">
+          <button data-val="adc">adc</button>
+          <button data-val="default">default</button>
+        </div>
+      </div>
+
+      <div class="admin-row">
+        <span class="admin-key">Resize factor</span>
+        <div class="seg-ctrl" id="lf-resize">
+          <button data-val="1">1×</button>
+          <button data-val="2">2×</button>
+          <button data-val="4">4×</button>
+          <button data-val="8">8×</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="admin-section">
+      <div class="admin-section-label">Pipeline</div>
+
+      <div class="admin-row">
+        <span class="admin-key">COLMAP quality</span>
+        <div class="seg-ctrl" id="colmap-quality">
+          <button data-val="low">Low</button>
+          <button data-val="medium">Med</button>
+          <button data-val="high">High</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-status"></div>
+    <div class="admin-actions">
+      <button class="btn btn-primary btn-sm" id="admin-apply-btn" onclick="applyAdminSettings()">Apply</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeAdmin()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1702,6 +1827,110 @@ window.fetch = function(url, opts) {
 
   return _realFetch(url, opts);
 };
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Admin setup panel
+───────────────────────────────────────────────────────────────────────── */
+function openAdmin() {
+  closeDiag();
+  document.getElementById('admin-panel').classList.add('open');
+  loadAdminConfig();
+}
+
+function closeAdmin() {
+  document.getElementById('admin-panel').classList.remove('open');
+}
+
+async function loadAdminConfig() {
+  const statusEl = document.getElementById('admin-status');
+  statusEl.textContent = 'Loading…';
+  statusEl.style.color = 'var(--text-muted)';
+  try {
+    const resp = await fetch(serverUrl() + '/api/config');
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Unknown error');
+    const rc = data.rc || {};
+    const pl = data.pipeline || {};
+    segSet('rc-detail', rc.detail || 'high');
+    document.getElementById('rc-timeout-h').value = +((rc.rc_timeout || 14400) / 3600).toFixed(1);
+    document.getElementById('rc-web-lod').value = Math.round((rc.web_lod_count || 500000) / 1000);
+    document.getElementById('rc-print-lod').value = Math.round((rc.print_lod_count || 100000) / 1000);
+    toggleSet('rc-skip-highpoly', !!rc.skip_highpoly_export);
+    document.getElementById('lf-iterations').value = pl.lichtfeld_iterations || 10000;
+    segSet('lf-strategy', pl.lichtfeld_strategy || 'adc');
+    segSet('lf-resize', String(pl.lichtfeld_resize_factor || 2));
+    segSet('colmap-quality', pl.colmap_quality || 'medium');
+    statusEl.textContent = '';
+  } catch (e) {
+    statusEl.textContent = 'Load failed: ' + e.message;
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+async function applyAdminSettings() {
+  const btn = document.getElementById('admin-apply-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const resp = await fetch(serverUrl() + '/api/config', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rc: {
+          detail:               segGet('rc-detail'),
+          rc_timeout:           Math.round(parseFloat(document.getElementById('rc-timeout-h').value) * 3600),
+          web_lod_count:        parseInt(document.getElementById('rc-web-lod').value) * 1000,
+          print_lod_count:      parseInt(document.getElementById('rc-print-lod').value) * 1000,
+          skip_highpoly_export: toggleGet('rc-skip-highpoly'),
+        },
+        pipeline: {
+          lichtfeld_iterations:    parseInt(document.getElementById('lf-iterations').value),
+          lichtfeld_strategy:      segGet('lf-strategy'),
+          lichtfeld_resize_factor: parseInt(segGet('lf-resize')),
+          colmap_quality:          segGet('colmap-quality'),
+        },
+      }),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Save failed');
+    showToast('Settings applied');
+    closeAdmin();
+  } catch (e) {
+    showToast('Save failed: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Apply';
+  }
+}
+
+function segSet(id, val) {
+  document.querySelectorAll('#' + id + ' button').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === String(val));
+  });
+}
+function segGet(id) {
+  const active = document.querySelector('#' + id + ' button.active');
+  return active ? active.dataset.val : '';
+}
+function toggleSet(id, val) {
+  const btn = document.getElementById(id);
+  btn.classList.toggle('on', !!val);
+  btn.textContent = val ? 'ON' : 'OFF';
+}
+function toggleGet(id) {
+  return document.getElementById(id).classList.contains('on');
+}
+
+document.querySelectorAll('.seg-ctrl button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.closest('.seg-ctrl').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const on = btn.classList.toggle('on');
+    btn.textContent = on ? 'ON' : 'OFF';
+  });
+});
 
 /* ─────────────────────────────────────────────────────────────────────────
    Init

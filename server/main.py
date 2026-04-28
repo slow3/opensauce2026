@@ -73,6 +73,33 @@ def status():
     })
 
 
+_WRITABLE_CONFIG_SECTIONS = {"rc", "pipeline"}
+
+@app.get("/api/config")
+def get_config():
+    return jsonify({
+        "ok":       True,
+        "rc":       CONFIG.get("rc", {}),
+        "pipeline": CONFIG.get("pipeline", {}),
+    })
+
+
+@app.patch("/api/config")
+def patch_config():
+    data = request.get_json(force=True)
+    bad = [s for s in data if s not in _WRITABLE_CONFIG_SECTIONS]
+    if bad:
+        return jsonify({"ok": False, "error": f"Read-only section(s): {bad}"}), 400
+    for section, values in data.items():
+        if not isinstance(values, dict):
+            return jsonify({"ok": False, "error": f"'{section}' must be an object"}), 400
+        CONFIG.setdefault(section, {}).update(values)
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(CONFIG, f, indent=2)
+    log.info(f"Config updated by admin panel: {list(data.keys())}")
+    return jsonify({"ok": True, "rc": CONFIG.get("rc", {}), "pipeline": CONFIG.get("pipeline", {})})
+
+
 @app.post("/api/register")
 def register():
     """Receive guest registration from iPad kiosk."""
